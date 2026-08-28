@@ -1,0 +1,56 @@
+-- Modul: inventory. Stok per outlet, reservasi, mutasi.
+--
+-- TODO:
+--
+-- inventory_stocks
+--   id, outlet_id, variant_id,
+--   quantity_on_hand   numeric(14,3) not null default 0,   -- fisik ada di outlet
+--   quantity_reserved  numeric(14,3) not null default 0,   -- sudah di-checkout, belum diambil
+--   low_stock_threshold numeric(14,3),
+--   version int not null default 1,
+--   updated_at
+--   unique (outlet_id, variant_id)
+--
+--   Yang bisa dijual = quantity_on_hand - quantity_reserved. Simpan keduanya
+--   terpisah; menyimpan satu angka "tersedia" membuat kamu tidak bisa menjawab
+--   "barangnya ada di rak atau sudah dipesan orang".
+--
+--   Stok disimpan dalam SATUAN TERKECIL varian (base_unit_code). Penjualan satu
+--   dus isi 40 mengurangi 40. Lihat ADR-006.
+--
+-- inventory_reservations
+--   id, order_id, suborder_id, outlet_id, variant_id,
+--   quantity numeric(14,3) not null,
+--   status text not null,           -- held | committed | released | expired
+--   expires_at timestamptz not null,
+--   created_at, updated_at
+--   index (status, expires_at) where status = 'held'
+--
+--   Stok ditahan saat CHECKOUT, bukan saat masuk keranjang. Menahan stok sejak
+--   masuk keranjang berarti barang hilang dari peredaran karena ada yang
+--   menimbunnya di keranjang selama seminggu. Lihat ADR-003.
+--
+--   Reservasi PUNYA MASA BERLAKU dan worker yang melepasnya. Kalau worker tidak
+--   jalan, stok habis di layar padahal barangnya ada di rak.
+--
+-- inventory_movements
+--   id, outlet_id, variant_id,
+--   kind text not null,             -- purchase | sale | return | adjustment |
+--                                   -- transfer_in | transfer_out | damage | expiry
+--   quantity numeric(14,3) not null,   -- positif menambah, negatif mengurangi
+--   balance_after numeric(14,3) not null,
+--   reference_type text, reference_id uuid,
+--   note text, actor_id uuid, created_at
+--   index (outlet_id, variant_id, created_at desc)
+--
+--   Append-only. Ini buku besar stok: setiap perubahan tercatat beserta sebab
+--   dan saldo sesudahnya. Saat penjual bertanya "kok stok saya berkurang 12",
+--   tabel inilah jawabannya. Kolom quantity_on_hand adalah ringkasan yang bisa
+--   dihitung ulang dari sini — kalau keduanya tidak cocok, movements yang benar.
+--
+-- inventory_stock_opnames
+--   id, outlet_id, status, started_by, started_at, finished_at, note
+-- inventory_stock_opname_items
+--   id, opname_id, variant_id, system_quantity, counted_quantity, difference
+--   Hasil opname masuk sebagai movement kind='adjustment', bukan mengubah
+--   quantity_on_hand langsung.

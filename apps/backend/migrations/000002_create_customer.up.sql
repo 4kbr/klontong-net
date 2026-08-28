@@ -1,0 +1,24 @@
+-- Modul: customer. Profil pembeli dan alamatnya.
+--
+-- TODO:
+--
+-- customer_profiles
+--   user_id pk, default_address_id uuid, birth_date, gender, created_at, updated_at
+--
+-- customer_addresses
+--   id, user_id, label text,                    -- "Rumah", "Kantor"
+--   recipient_name, recipient_phone,
+--   province, city, district, village, postal_code,
+--   address_line text, notes text,
+--   latitude numeric(10,7), longitude numeric(10,7),
+--   is_default boolean not null default false,
+--   deleted_at, created_at, updated_at
+--   index (user_id) where deleted_at is null
+--
+--   Koordinat WAJIB untuk antar lokal — tarifnya dihitung per km. Kalau pembeli
+--   tidak memberikan titik, antar lokal tidak boleh ditawarkan untuk alamat itu.
+--
+--   Alamat dihapus dengan soft delete, tidak pernah dihapus permanen. Pesanan
+--   lama merujuk ke alamat, dan riwayat pesanan tidak boleh berubah karena
+--   pembeli menghapus alamatnya. Meski begitu, pesanan tetap menyimpan
+--   SALINAN alamat, bukan hanya id. Lihat ADR-010.

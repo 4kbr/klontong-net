@@ -1,0 +1,45 @@
+-- Modul: promotion. Voucher dan diskon.
+--
+-- TODO:
+--
+-- promotion_vouchers
+--   id, code text unique not null, name, description,
+--   owner_type text not null,        -- marketplace | seller
+--   owner_seller_id uuid,
+--   kind text not null,              -- percentage | fixed_amount | free_shipping
+--   value_bps int,                   -- untuk percentage, basis poin
+--   value_amount bigint,             -- untuk fixed_amount
+--   max_discount_amount bigint,      -- batas atas untuk percentage
+--   min_order_amount bigint,
+--   applies_to text,                 -- items | shipping
+--   quota int, quota_per_user int, used_count int not null default 0,
+--   starts_at, ends_at,
+--   is_active boolean, created_at, updated_at
+--   index (code) where is_active
+--
+--   `owner_type` menentukan siapa yang menanggung diskonnya. Voucher
+--   marketplace dipotong dari komisi kita; voucher penjual dipotong dari
+--   pendapatan penjual. Kalau ini tidak dibedakan sejak awal, pembukuan
+--   settlement akan salah dan baru ketahuan saat penjual protes.
+--
+-- promotion_redemptions
+--   id, voucher_id, user_id, order_id, suborder_id,
+--   discount_amount bigint not null, created_at
+--   unique (voucher_id, order_id)
+--   index (voucher_id, user_id)
+--
+--   Penegakan kuota memakai unique index dan pengecekan DI DALAM transaksi
+--   checkout. Mengecek kuota sebelum transaksi lalu memakainya sesudahnya
+--   adalah balapan yang pasti kalah saat flash sale.
+--
+-- promotion_campaigns
+--   id, name, kind, config jsonb, starts_at, ends_at, is_active, created_at
+--   Diskon massal: potongan kategori, beli 2 gratis 1, dsb.
+--
+-- promotion_campaign_products
+--   campaign_id, product_id / variant_id
+--
+-- CATATAN PEMBAGIAN DISKON: satu voucher yang berlaku untuk keranjang berisi
+-- tiga penjual harus dibagi ke tiga suborder, dan pembagiannya jarang bulat.
+-- Sisa pembulatan harus dialokasikan secara deterministik agar jumlahnya tetap
+-- persis. Lihat ADR-005.

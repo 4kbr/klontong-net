@@ -1,0 +1,64 @@
+-- Modul: settlement. Komisi, buku besar, pencairan.
+--
+-- Ini bagian yang paling tidak boleh salah. Uang yang hilang tidak bisa
+-- ditambal dengan hotfix.
+--
+-- TODO:
+--
+-- settlement_accounts
+--   id, owner_type text not null,      -- seller | marketplace | buyer | gateway | courier
+--   owner_id uuid,
+--   kind text not null,                -- pending | available | payable | revenue | clearing
+--   currency char(3) not null default 'IDR',
+--   created_at
+--   unique (owner_type, owner_id, kind)
+--
+-- settlement_entries                    -- BUKU BESAR, double entry
+--   id, journal_id uuid not null,
+--   account_id not null,
+--   direction text not null,           -- debit | credit
+--   amount bigint not null check (amount > 0),
+--   reference_type text, reference_id uuid,
+--   description text, occurred_at, created_at
+--   index (account_id, occurred_at desc), index (journal_id)
+--
+--   Setiap jurnal HARUS seimbang: jumlah debit sama dengan jumlah kredit.
+--   Tegakkan dengan constraint deferred atau dengan pengecekan di akhir
+--   transaksi — jangan hanya mengandalkan kode yang hati-hati.
+--
+--   TIDAK ADA kolom saldo yang di-UPDATE. Saldo adalah hasil penjumlahan entri.
+--   Kolom saldo yang diperbarui langsung akan menyimpang cepat atau lambat, dan
+--   saat itu terjadi kamu tidak punya cara tahu angka mana yang benar.
+--   Kalau penjumlahan jadi lambat, buat snapshot saldo berkala — snapshot tetap
+--   bisa dihitung ulang dari entri. Lihat ADR-011.
+--
+-- settlement_balance_snapshots
+--   id, account_id, balance_amount bigint, as_of timestamptz,
+--   last_entry_id uuid, created_at
+--
+-- settlement_payouts
+--   id, seller_id, amount bigint not null,
+--   status text not null,              -- requested | processing | paid | failed
+--   bank_code, account_number, account_name,
+--   provider_reference text, requested_at, processed_at, failed_reason,
+--   idempotency_key text unique not null,
+--   created_at, updated_at
+--
+--   idempotency_key WAJIB unique. Pencairan yang dijalankan dua kali karena
+--   worker restart berarti uang keluar dua kali, dan menariknya kembali jauh
+--   lebih sulit daripada mencegahnya.
+--
+-- settlement_payout_items
+--   payout_id, suborder_id, amount bigint
+--   Suborder mana saja yang tercakup dalam satu pencairan.
+--
+-- ALUR UANG yang harus dicatat (garis besar):
+--   Pesanan dibayar        : kas naik, kewajiban ke penjual naik (akun pending)
+--   Suborder selesai       : tidak ada uang berpindah, hanya penanda waktu
+--   Lewat masa tahan       : pending penjual pindah ke available
+--   Komisi                 : dipotong saat suborder selesai, masuk revenue kita
+--   Pencairan              : available penjual turun, kas kita turun
+--   Refund                 : arah dibalik, dan HARUS bisa dilakukan setelah
+--                            dana sudah cair — itu jadi piutang ke penjual
+--   COD                    : uang tidak pernah lewat kita dulu; kurir yang
+--                            menyetor. Lihat ADR-012.

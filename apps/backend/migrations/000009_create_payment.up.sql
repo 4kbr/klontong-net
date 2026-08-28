@@ -1,0 +1,48 @@
+-- Modul: payment. Pembayaran gateway dan COD.
+--
+-- TODO:
+--
+-- payment_payments
+--   id, order_id not null, method text not null,     -- gateway | cod
+--   provider text, provider_reference text,
+--   amount bigint not null,
+--   status text not null,       -- pending | authorized | settled | failed |
+--                               -- expired | refunded | partially_refunded
+--   channel text,               -- va_bca | gopay | qris | cod
+--   paid_at, expired_at, failed_reason,
+--   idempotency_key text unique not null,
+--   created_at, updated_at
+--   unique (order_id) where status not in ('failed','expired')
+--   index (provider_reference)
+--
+--   Satu pesanan hanya boleh punya satu pembayaran aktif. Unique index parsial
+--   di atas yang menegakkannya — tanpa itu, klik ganda pada tombol bayar
+--   menghasilkan dua tagihan.
+--
+-- payment_webhook_events
+--   id, provider text, event_id text not null, signature text,
+--   payload jsonb not null,
+--   status text,                -- received | processed | ignored | failed
+--   processed_at, error text, created_at
+--   unique (provider, event_id)
+--
+--   SIMPAN MENTAHNYA sebelum diproses. Webhook datang berkali-kali, kadang tidak
+--   berurutan, dan kadang tidak datang sama sekali. Unique index pada
+--   (provider, event_id) yang membuat pemrosesan ulang aman.
+--
+--   Verifikasi SIGNATURE sebelum mempercayai isinya. Webhook tanpa verifikasi
+--   berarti siapa pun yang menemukan URL-nya bisa menyatakan pesanan lunas.
+--
+-- payment_refunds
+--   id, payment_id, order_id, suborder_id,
+--   amount bigint not null, reason text,
+--   status text,                -- requested | processing | completed | failed
+--   provider_reference text, requested_by, processed_at, created_at
+--
+--   Refund bisa PARSIAL: satu penjual membatalkan, dua penjual lain tetap
+--   berjalan. Karena itu refund menunjuk ke suborder, bukan hanya ke order.
+--
+-- CATATAN COD: pesanan COD sah tanpa pembayaran di muka. Uang masuk ke KURIR,
+-- bukan ke rekening kita, lalu disetorkan belakangan. Arah arus kasnya terbalik
+-- dibanding pembayaran gateway, dan itu mengubah pembukuan settlement.
+-- Lihat ADR-012.

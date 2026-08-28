@@ -1,0 +1,43 @@
+-- Modul: seller. Penjual dan outletnya.
+--
+-- TODO:
+--
+-- seller_sellers
+--   id uuid pk, owner_user_id uuid not null,
+--   name text not null, slug text unique not null, description text,
+--   logo_url, banner_url,
+--   status text not null,           -- pending | verified | suspended | closed
+--   commission_bps int,             -- null = pakai default marketplace
+--   payout_bank_code text, payout_account_number text, payout_account_name text,
+--   verified_at, created_at, updated_at
+--
+--   commission_bps dalam BASIS POIN (250 = 2,5%). Bilangan bulat, jadi tidak
+--   ada pecahan yang perlu disimpan. Lihat ADR-005.
+--
+-- seller_outlets
+--   id, seller_id, name, phone,
+--   province, city, district, postal_code, address_line,
+--   latitude numeric(10,7) not null, longitude numeric(10,7) not null,
+--   is_active boolean not null default true,
+--   supports_pickup boolean not null default true,
+--   supports_local_delivery boolean not null default false,
+--   supports_courier boolean not null default true,
+--   operating_hours jsonb,
+--   created_at, updated_at
+--   index (seller_id), index (city)
+--
+--   Koordinat outlet WAJIB. Ia titik asal untuk semua perhitungan ongkir dan
+--   penentu outlet mana yang paling dekat dengan pembeli.
+--
+--   Tiga kolom `supports_*` menentukan metode pengiriman yang boleh ditawarkan.
+--   Outlet gudang mungkin tidak melayani ambil di toko; kios kecil mungkin tidak
+--   punya kurir sendiri.
+--
+-- seller_members         (seller_id, user_id, role, created_at)
+--   role: owner | manager | staff
+--   Toko bisa dikelola lebih dari satu orang.
+--
+-- seller_documents
+--   id, seller_id, kind text, storage_key text, status text,
+--   reviewed_by, reviewed_at, rejection_reason, created_at
+--   KTP, NPWP, foto toko untuk verifikasi.

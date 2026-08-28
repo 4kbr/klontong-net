@@ -1,0 +1,53 @@
+run:
+  timeout: 5m
+  tests: true
+
+linters:
+  enable:
+    - errcheck
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - gosimple
+    - bodyclose
+    - depguard
+    - gocritic
+    - misspell
+    - revive
+    - sqlclosecheck
+    - rowserrcheck
+    - contextcheck
+    - errorlint
+    - noctx
+
+linters-settings:
+  depguard:
+    rules:
+      domain-harus-murni:
+        files:
+          - "**/internal/modules/*/internal/domain/**"
+        deny:
+          - pkg: "net/http"
+            desc: "domain tidak boleh tahu soal HTTP"
+          - pkg: "github.com/jackc/pgx/v5"
+            desc: "domain tidak boleh tahu soal driver database"
+          - pkg: "github.com/go-chi/chi/v5"
+            desc: "domain tidak boleh tahu soal router"
+
+      uang-jangan-float:
+        files:
+          - "**/*.go"
+        deny:
+          - pkg: "math/big"
+            desc: "uang disimpan sebagai int64 rupiah; kalau butuh big.Rat untuk hitungan persen, taruh di platform/money dan beri komentar alasannya"
+
+  revive:
+    rules:
+      - name: exported
+        disabled: true
+
+issues:
+  exclude-rules:
+    - path: _test\.go
+      linters: [errcheck, depguard]

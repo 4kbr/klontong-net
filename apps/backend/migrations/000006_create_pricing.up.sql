@@ -1,0 +1,33 @@
+-- Modul: pricing. Harga jual, tier grosir, harga per outlet.
+--
+-- TODO:
+--
+-- pricing_prices
+--   id, variant_id, outlet_id uuid,          -- null = berlaku untuk semua outlet
+--   price_amount bigint not null,             -- RUPIAH, int64. Lihat ADR-005.
+--   compare_at_amount bigint,                 -- harga coret
+--   cost_amount bigint,                       -- modal, untuk laporan margin penjual
+--   currency char(3) not null default 'IDR',
+--   starts_at, ends_at,
+--   is_active boolean not null default true,
+--   created_at, updated_at
+--   unique (variant_id, outlet_id, starts_at)
+--
+--   Harga per outlet dibuat NULLABLE dengan makna "berlaku semua outlet".
+--   Sebagian besar penjual memakai satu harga; yang punya outlet di lokasi
+--   berbeda biaya sewanya kadang perlu berbeda. Resolusi: cari harga khusus
+--   outlet dulu, kalau tidak ada pakai yang umum.
+--
+-- pricing_quantity_tiers
+--   id, price_id, min_quantity numeric(14,3) not null,
+--   price_amount bigint not null, created_at
+--   index (price_id, min_quantity)
+--
+--   Grosir: beli 1-9 harga A, 10-49 harga B, 50+ harga C. Ini ciri khas
+--   dagang klontong dan harus ada sejak awal, bukan ditambal belakangan.
+--   Tier dipilih berdasarkan kuantitas dalam satu baris keranjang, bukan
+--   total keseluruhan pesanan.
+--
+-- CATATAN PENTING: harga di keranjang dan di pesanan adalah SALINAN, bukan
+-- referensi. Penjual yang menaikkan harga tidak boleh mengubah total pesanan
+-- yang sudah dibuat. Lihat ADR-010.

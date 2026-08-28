@@ -1,0 +1,70 @@
+# Infrastruktur lokal. Backend dijalankan di host lewat `make dev` supaya reload cepat.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: klontong_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-klontong}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-klontong}
+      POSTGRES_DB: ${POSTGRES_DB:-klontong}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-klontong}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Cache katalog, rate limit, kunci idempotensi, sesi pencarian.
+  # Isinya boleh hilang — tidak ada data yang hanya ada di sini.
+  redis:
+    image: redis:7-alpine
+    container_name: klontong_redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # Foto produk, bukti transfer, dokumen verifikasi penjual.
+  minio:
+    image: minio/minio:latest
+    container_name: klontong_minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+
+  # Email verifikasi, invoice, notifikasi penjual. UI di http://localhost:8025
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: klontong_mailhog
+    restart: unless-stopped
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
+  adminer:
+    image: adminer:latest
+    container_name: klontong_adminer
+    restart: unless-stopped
+    profiles: ["tools"]
+    ports:
+      - "8081:8080"
+
+volumes:
+  postgres_data:
+  minio_data:

@@ -1,0 +1,51 @@
+-- Modul: fulfillment. Tiga metode pengiriman.
+--
+-- TODO:
+--
+-- fulfillment_shipments
+--   id, suborder_id not null unique, outlet_id, method text not null,
+--   status text not null,        -- pending | ready | picked_up | in_transit |
+--                                -- delivered | failed | returned
+--   -- kurir ekspedisi
+--   courier_code text, courier_service text, tracking_number text,
+--   -- antar lokal
+--   driver_name text, driver_phone text, distance_km numeric(8,2),
+--   -- ambil di toko
+--   pickup_code text, pickup_expires_at, picked_up_at,
+--   shipping_amount bigint not null,
+--   estimated_delivery_at, shipped_at, delivered_at,
+--   proof_storage_key text,      -- foto bukti terima
+--   created_at, updated_at
+--   index (tracking_number), index (status)
+--
+--   Satu tabel untuk tiga metode, dengan kolom yang hanya terisi sesuai
+--   metodenya. Memecah jadi tiga tabel terdengar lebih bersih tapi membuat
+--   "tampilkan semua pengiriman penjual ini" jadi tiga query dan satu union.
+--
+--   pickup_code adalah kode yang ditunjukkan pembeli saat mengambil barang.
+--   Beri masa berlaku; barang yang tidak diambil harus kembali jadi stok.
+--
+-- fulfillment_tracking_events
+--   id, shipment_id, status, description, location, occurred_at,
+--   source text,                 -- courier_api | manual | system
+--   created_at
+--   index (shipment_id, occurred_at desc)
+--   Append-only.
+--
+-- fulfillment_shipping_quotes
+--   id, cart_id, suborder_id, seller_id, outlet_id, method text,
+--   courier_code, courier_service,
+--   amount bigint not null, etd_min_day int, etd_max_day int,
+--   distance_km numeric(8,2),
+--   expires_at timestamptz not null,
+--   created_at
+--
+--   Ongkir dihitung PER SUBORDER, bukan per pesanan — tiap penjual mengirim
+--   dari outletnya sendiri. Quote punya masa berlaku karena tarif kurir berubah;
+--   checkout dengan quote kedaluwarsa harus dihitung ulang, bukan dipakai.
+--
+-- fulfillment_delivery_zones
+--   id, outlet_id, max_distance_km numeric(6,2), base_fare bigint,
+--   per_km_fare bigint, min_order_amount bigint, is_active, created_at
+--   Aturan antar lokal per outlet. Outlet di daerah padat mungkin membatasi
+--   radius lebih kecil.

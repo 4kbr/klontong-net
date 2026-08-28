@@ -1,0 +1,21 @@
+-- Modul: notification. Konsumen event murni.
+--
+-- TODO:
+--
+-- notification_notifications
+--   id, recipient_user_id not null, kind text not null,
+--   payload jsonb not null, channel text,     -- inapp | email | whatsapp | push
+--   read_at, sent_at, failed_reason, created_at
+--   index (recipient_user_id, created_at desc)
+--   index (recipient_user_id) where read_at is null
+--
+-- notification_preferences
+--   user_id pk, email_enabled, push_enabled, whatsapp_enabled,
+--   order_updates, promotions, seller_updates
+--
+-- notification_templates
+--   id, kind, channel, subject, body_template, locale, is_active
+--
+-- Pembeli dan penjual butuh notifikasi yang berbeda untuk peristiwa yang sama.
+-- "Pesanan dibayar" berarti "pembayaranmu berhasil" bagi pembeli dan "ada
+-- pesanan baru, siapkan barang" bagi penjual. Satu event, dua pesan.

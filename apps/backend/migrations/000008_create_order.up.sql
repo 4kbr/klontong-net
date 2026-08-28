@@ -1,0 +1,73 @@
+-- Modul: order. Inti sistem.
+--
+-- TODO:
+--
+-- order_orders                        -- induk, satu per checkout, satu pembayaran
+--   id uuid pk, order_number text unique not null,
+--   buyer_user_id uuid not null,
+--   status text not null,             -- pending_payment | paid | partially_fulfilled |
+--                                     -- completed | cancelled | expired
+--   items_amount     bigint not null, -- jumlah semua barang sebelum diskon
+--   discount_amount  bigint not null,
+--   shipping_amount  bigint not null, -- jumlah ongkir seluruh suborder
+--   tax_amount       bigint not null,
+--   grand_total      bigint not null, -- INI yang dibayar. Dihitung server.
+--   currency char(3) not null default 'IDR',
+--   payment_method text,              -- gateway | cod
+--   shipping_address jsonb not null,  -- SALINAN, bukan referensi. ADR-010.
+--   buyer_note text,
+--   placed_at, paid_at, completed_at, cancelled_at, cancel_reason,
+--   expires_at,
+--   created_at, updated_at
+--   index (buyer_user_id, created_at desc)
+--   index (status) where status in ('pending_payment','paid')
+--
+-- order_suborders                     -- satu per PENJUAL dalam satu pesanan
+--   id uuid pk, order_id not null, suborder_number text unique not null,
+--   seller_id not null, outlet_id not null,
+--   status text not null,             -- awaiting_confirmation | confirmed | packing |
+--                                     -- ready_for_pickup | shipped | delivered |
+--                                     -- completed | cancelled | rejected
+--   fulfillment_method text not null, -- local_delivery | courier | pickup
+--   items_amount, discount_amount, shipping_amount, tax_amount, total_amount bigint,
+--   commission_bps int not null,      -- DIBEKUKAN saat pesanan dibuat
+--   commission_amount bigint not null,
+--   seller_earning_amount bigint not null,
+--   confirmed_at, shipped_at, delivered_at, completed_at, cancelled_at,
+--   cancel_reason, rejected_reason,
+--   created_at, updated_at
+--   index (seller_id, status), index (order_id)
+--
+--   INI BENTUK YANG PALING MENENTUKAN DI SELURUH PROJECT. Pembeli melihat satu
+--   pesanan; penjual melihat pesanan miliknya sendiri; pengiriman, pembatalan,
+--   dan pencairan semuanya terjadi di level suborder. Baca ADR-002.
+--
+--   commission_bps DIBEKUKAN. Marketplace yang mengubah komisi besok tidak boleh
+--   mengubah bagi hasil pesanan kemarin.
+--
+-- order_items
+--   id, order_id, suborder_id, variant_id, product_id, seller_id,
+--   product_name text not null,        -- SALINAN
+--   variant_name text not null,        -- SALINAN
+--   sku text, image_url text,          -- SALINAN
+--   unit_code text, content_quantity numeric(12,3),
+--   quantity numeric(14,3) not null,
+--   unit_price_amount bigint not null, -- SALINAN harga saat itu
+--   discount_amount bigint not null,
+--   total_amount bigint not null,
+--   weight_gram int not null,
+--   created_at
+--
+--   Semua yang bertanda SALINAN adalah snapshot. Membuka pesanan tahun lalu
+--   harus menampilkan nama, harga, dan foto SAAT ITU — bukan yang sekarang.
+--   Produk bisa dihapus penjual, dan invoice tidak boleh berubah karenanya.
+--   Lihat ADR-010.
+--
+-- order_status_events
+--   id, order_id, suborder_id, from_status, to_status,
+--   actor_type text, actor_id uuid, reason text, metadata jsonb, created_at
+--   Append-only. Riwayat transisi status, dan bukti saat ada sengketa.
+--
+-- order_cancellations
+--   id, order_id, suborder_id, requested_by, reason, status,
+--   approved_by, approved_at, refund_id uuid, created_at

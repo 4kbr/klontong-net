@@ -1,0 +1,11 @@
+apps/backend/bin/
+apps/backend/tmp/
+coverage.out
+coverage.html
+node_modules/
+apps/frontend/dist/
+.env
+.env.local
+.idea/
+.vscode/
+.DS_Store

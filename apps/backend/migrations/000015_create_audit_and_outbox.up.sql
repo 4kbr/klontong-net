@@ -1,0 +1,28 @@
+-- Audit lintas modul + infrastruktur outbox.
+--
+-- TODO — audit_events:
+--   id, actor_type text,             -- user | seller | admin | system | gateway
+--   actor_id uuid, actor_label text,
+--   action text,                      -- order.cancelled | payout.processed |
+--                                     -- stock.adjusted | seller.verified
+--   target_type text, target_id uuid,
+--   before jsonb, after jsonb,
+--   ip inet, user_agent text, created_at
+--   index (target_type, target_id, created_at desc)
+--   index (actor_id, created_at desc)
+--
+--   Append-only. Pertimbangkan mencabut hak UPDATE dan DELETE di level role
+--   database — disiplin kode saja tidak cukup untuk tabel yang gunanya jadi bukti.
+--
+--   Wajib untuk setiap aksi yang menyentuh uang, stok, atau status pesanan.
+--   Saat penjual protes "saya tidak pernah membatalkan pesanan itu", tabel
+--   inilah jawabannya.
+--
+-- TODO — outbox_events:
+--   id uuid pk, aggregate_type text not null, aggregate_id uuid not null,
+--   event_type text not null, payload jsonb not null,
+--   created_at, published_at, attempts int not null default 0, last_error text
+--   index (published_at) where published_at is null
+--
+--   Ditulis dalam transaksi yang sama dengan perubahan datanya. Relay memungut
+--   dengan FOR UPDATE SKIP LOCKED. At-least-once, jadi consumer harus idempoten.

@@ -1,0 +1,28 @@
+-- Modul: review. Ulasan produk dan penilaian penjual.
+--
+-- TODO:
+--
+-- review_reviews
+--   id, order_item_id not null unique,      -- HANYA dari pesanan yang benar-benar diterima
+--   product_id, variant_id, seller_id, user_id,
+--   rating int not null check (rating between 1 and 5),
+--   comment text, images jsonb,
+--   is_anonymous boolean,
+--   status text,                             -- published | hidden | flagged
+--   created_at, updated_at
+--   index (product_id, created_at desc)
+--   index (seller_id, created_at desc)
+--
+--   Terikat ke order_item, dan unique. Ini yang mencegah ulasan palsu: hanya
+--   yang benar-benar membeli dan menerima yang bisa menulis, dan hanya sekali
+--   per barang yang dibeli.
+--
+-- review_replies
+--   id, review_id unique, seller_id, body, created_at, updated_at
+--   Penjual boleh membalas satu kali.
+--
+-- review_reports
+--   id, review_id, reported_by, reason, status, reviewed_by, reviewed_at, created_at
+--
+-- Agregat rating (rating_avg, rating_count di catalog_products) DIPERBARUI
+-- WORKER lewat event, bukan dihitung saat halaman produk dibuka.

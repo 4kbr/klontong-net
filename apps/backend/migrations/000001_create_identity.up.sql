@@ -1,0 +1,27 @@
+-- Modul: identity. Akun, sesi, peran.
+--
+-- TODO:
+--
+-- identity_users
+--   id uuid pk, email citext unique not null, phone text unique,
+--   password_hash text, full_name text not null, avatar_url text,
+--   email_verified_at, phone_verified_at,
+--   status text not null,          -- active | suspended | deleted
+--   created_at, updated_at
+--
+-- identity_roles         (user_id, role) pk gabungan
+--   role text check (role in ('buyer','seller','admin'))
+--   Satu orang bisa punya lebih dari satu peran. Penjual juga membeli.
+--   Karena itu peran adalah tabel terpisah, bukan kolom di users.
+--
+-- identity_sessions
+--   id, user_id, refresh_token_hash text unique not null, expires_at,
+--   revoked_at, user_agent, ip inet, created_at
+--   Simpan HASH refresh token, bukan tokennya.
+--
+-- identity_verifications
+--   id, user_id, kind text,        -- email | phone | password_reset
+--   token_hash text, expires_at, used_at, created_at
+--
+-- Nomor telepon penting di segmen ini — banyak pembeli lebih hafal nomor HP
+-- daripada email. Siapkan login lewat keduanya sejak awal.

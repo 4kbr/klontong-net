@@ -1,0 +1,54 @@
+-- Modul: catalog. Produk, varian, kategori, satuan.
+--
+-- TODO:
+--
+-- catalog_categories
+--   id, parent_id uuid, name, slug unique, icon_url, position int,
+--   is_active, created_at, updated_at
+--   Berjenjang. Untuk menampilkan pohon tanpa recursive CTE di setiap request,
+--   pertimbangkan menyimpan `path` ltree atau materialized path.
+--
+-- catalog_products
+--   id, seller_id not null, category_id, name, slug, description,
+--   brand text, status text,        -- draft | active | archived
+--   is_taxable boolean,
+--   rating_avg numeric(3,2), rating_count int, sold_count int,
+--   published_at, created_at, updated_at, deleted_at
+--   index (seller_id, status), index (category_id) where status='active'
+--
+--   Produk dimiliki PENJUAL, bukan marketplace. Dua penjual yang menjual
+--   Indomie goreng punya dua baris produk berbeda. Menyatukannya jadi satu
+--   katalog master terdengar rapi tapi menimbulkan masalah besar: siapa yang
+--   berhak mengubah nama dan fotonya. Tunda sampai benar-benar dibutuhkan.
+--
+--   rating_avg dan sold_count adalah agregat yang DIPERBARUI WORKER, bukan
+--   dihitung saat request. Menghitung rata-rata rating dari jutaan ulasan di
+--   setiap pembukaan halaman produk adalah cara membunuh database.
+--
+-- catalog_variants
+--   id, product_id, sku text, name text,       -- "Renceng isi 10", "Dus isi 40"
+--   barcode text,
+--   unit_code text not null,                    -- pcs | renceng | dus | kg | liter
+--   content_quantity numeric(12,3) not null,    -- isi per satuan, mis. dus = 40 pcs
+--   base_unit_code text not null,               -- satuan terkecil produk ini
+--   weight_gram int not null,                   -- WAJIB untuk ongkir kurir
+--   length_cm, width_cm, height_cm int,
+--   is_default boolean, is_active boolean,
+--   position int, created_at, updated_at
+--   unique (product_id, sku)
+--
+--   `content_quantity` dan `base_unit_code` adalah inti dagang klontong: satu
+--   barang dijual per pcs, per renceng, dan per dus sekaligus. Stok disimpan
+--   dalam SATUAN TERKECIL, dan penjualan per dus mengurangi stok sebanyak
+--   isinya. Tanpa ini, stok tiga varian yang sebenarnya barang yang sama akan
+--   saling berbohong. Lihat ADR-006.
+--
+--   weight_gram wajib dan tidak boleh nol. Ongkir kurir dihitung dari berat;
+--   varian tanpa berat akan menghasilkan ongkir nol dan kerugian yang tidak
+--   ketahuan sampai akhir bulan.
+--
+-- catalog_product_images
+--   id, product_id, variant_id, storage_key, position, created_at
+--
+-- catalog_product_attributes
+--   id, product_id, name, value       -- komposisi, kadaluarsa, halal, dsb

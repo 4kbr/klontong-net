@@ -1,0 +1,34 @@
+-- Modul: cart. Keranjang, dikelompokkan per penjual.
+--
+-- TODO:
+--
+-- cart_carts
+--   id, user_id uuid,                 -- null untuk tamu
+--   session_token text,                -- untuk tamu, sebelum login
+--   status text,                       -- active | converted | abandoned
+--   created_at, updated_at
+--   unique (user_id) where status = 'active'
+--   index (session_token) where status = 'active'
+--
+--   Keranjang tamu perlu ada — memaksa login sebelum melihat total adalah cara
+--   kehilangan pembeli. Saat tamu login, keranjangnya digabung dengan keranjang
+--   yang sudah ada, bukan menimpanya.
+--
+-- cart_items
+--   id, cart_id, seller_id, outlet_id, variant_id,
+--   quantity numeric(14,3) not null,
+--   unit_price_amount bigint,          -- HANYA cache untuk tampilan
+--   price_checked_at timestamptz,
+--   note text,                          -- catatan pembeli, mis. "yang tidak penyok"
+--   created_at, updated_at
+--   unique (cart_id, variant_id, outlet_id)
+--   index (cart_id, seller_id)
+--
+--   `seller_id` disimpan di item meski bisa didapat dari varian. Pengelompokan
+--   keranjang per penjual terjadi di hampir setiap tampilan, dan tidak layak
+--   membayar join untuk itu setiap kali.
+--
+--   `unit_price_amount` adalah CACHE, bukan kebenaran. Harga dihitung ulang di
+--   server setiap kali keranjang dibuka dan saat checkout. Kalau berubah,
+--   beri tahu pembeli dengan jelas alih-alih diam-diam memakai angka lama.
+--   Lihat ADR-004.
