@@ -1,0 +1,86 @@
+# /webhook/* — notifikasi penyedia. Tanpa sesi, tanpa CORS. Verifikasi tanda tangan
+# oleh handler (bukan middleware auth).
+
+payment:
+  parameters:
+    - name: provider
+      in: path
+      required: true
+      description: Slug penyedia pembayaran (mis. midtrans, xendit).
+      schema:
+        type: string
+      example: midtrans
+  post:
+    operationId: paymentWebhook
+    tags: [Webhooks]
+    summary: Notifikasi status pembayaran dari gateway
+    description: >-
+      Handler membaca **raw body** sebelum decode, memverifikasi tanda tangan
+      dengan perbandingan **waktu-konstan**, lalu memproses.
+
+      Aturan balasan:
+      - **Signature tidak valid** → `400 invalid_signature`, payload tidak diproses.
+      - **Duplikat** `(provider, event_id)` → **200** dan berhenti (gateway
+        mengirim ulang sampai 200; membalas error membuatnya mengirim selamanya).
+      - **Amount mismatch** (gateway melaporkan jumlah berbeda) → **200**, insiden
+        dicatat untuk ditinjau manusia, order **TIDAK** ditandai paid.
+      - **Sukses** → persist cepat, balas **200**, proses lanjut lewat event
+        `payment.settled`.
+
+      Bentuk body bergantung penyedia — tidak divalidasi oleh kontrak.
+
+      Contoh formula tanda tangan Midtrans:
+      `SHA512(order_id + status_code + gross_amount + server_key)`.
+      Pemetaan status Midtrans: `capture`/`settlement` → settled; `pending` →
+      pending; `deny`/`cancel`/`expire` → failed/expired.
+
+      Tidak ada webhook kurir — pembaruan tracking dilakukan worker `SyncTracking`.
+    security:
+      - webhookSignature: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            description: Payload mentah penyedia. Bentuk bebas.
+            additionalProperties: true
+          examples:
+            midtransSettlement:
+              value:
+                transaction_time: "2026-08-27 09:31:02"
+                transaction_status: settlement
+                transaction_id: 9aa1f9e2-1b2c-3d4e-5f60-7a8b9c0d1e2f
+                status_message: midtrans payment notification
+                status_code: "200"
+                signature_key: 6f2b...e9
+                order_id: KN-20260827-000123
+                gross_amount: "124000.00"
+                payment_type: bank_transfer
+                fraud_status: accept
+    responses:
+      "200":
+        description: >-
+          Diterima (termasuk kasus duplikat dan amount-mismatch — keduanya dibalas
+          200 secara sengaja).
+        headers:
+          X-Request-ID: { $ref: "../components/headers.yaml#/XRequestId" }
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                received:
+                  type: boolean
+                  example: true
+      "400":
+        description: Tanda tangan tidak valid — payload tidak diproses.
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/_common.yaml#/ErrorEnvelope"
+            example:
+              error:
+                code: invalid_signature
+                message: Signature verification failed.
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }

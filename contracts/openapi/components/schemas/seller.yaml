@@ -1,0 +1,950 @@
+# Schema area dasbor penjual (/api/v1/seller/*). Bentuk dasbor TERPISAH dari bentuk
+# publik di catalog.yaml — dasbor boleh memuat bank, komisi, harga pokok, dsb.
+# Semua operasi butuh peran `seller` + keanggotaan toko (dicek di usecase).
+
+# ===========================================================================
+# Toko, outlet, pengelola, dokumen
+# ===========================================================================
+ShopDashboard:
+  type: object
+  required: [id, slug, name, status, created_at]
+  properties:
+    id:
+      $ref: "./_common.yaml#/Uuid"
+    slug:
+      type: string
+      example: toko-berkah
+    name:
+      type: string
+      example: Toko Berkah
+    description:
+      type: string
+      nullable: true
+    status:
+      $ref: "./_common.yaml#/SellerStatus"
+    commission_bps:
+      $ref: "./_common.yaml#/BasisPointsNullable"
+      description: null = pakai default marketplace. 0 berarti benar-benar 0%.
+    payout_account:
+      type: object
+      nullable: true
+      properties:
+        bank_code:
+          type: string
+          example: bca
+        account_number:
+          type: string
+          example: "1234567890"
+        account_name:
+          type: string
+          example: BUDI SANTOSO
+        verified:
+          type: boolean
+    verified_at:
+      $ref: "./_common.yaml#/TimestampNullable"
+    created_at:
+      $ref: "./_common.yaml#/Timestamp"
+
+ShopRegisterRequest:
+  type: object
+  description: Membuka toko. Menambah peran `seller` ke akun yang sedang login (bukan akun kedua).
+  required: [name]
+  properties:
+    name:
+      type: string
+      example: Toko Berkah
+    description:
+      type: string
+  additionalProperties: false
+
+ShopUpdateRequest:
+  type: object
+  properties:
+    name:
+      type: string
+    description:
+      type: string
+      nullable: true
+  additionalProperties: false
+
+PayoutAccountRequest:
+  type: object
+  description: Hanya owner yang boleh mengubah. Nama rekening divalidasi ke penyedia transfer.
+  required: [bank_code, account_number]
+  properties:
+    bank_code:
+      type: string
+      example: bca
+    account_number:
+      type: string
+      example: "1234567890"
+  additionalProperties: false
+
+OperatingHours:
+  type: object
+  description: Jam buka per hari (kunci hari dalam bahasa Inggris huruf kecil).
+  additionalProperties:
+    type: object
+    nullable: true
+    properties:
+      open:
+        type: string
+        example: "08:00"
+      close:
+        type: string
+        example: "21:00"
+  example:
+    monday: { open: "08:00", close: "21:00" }
+    sunday: null
+
+Outlet:
+  type: object
+  required: [id, name, latitude, longitude, is_active, supports_pickup, supports_local_delivery, supports_courier]
+  properties:
+    id:
+      $ref: "./_common.yaml#/Uuid"
+    name:
+      type: string
+      example: Outlet Tebet
+    address:
+      type: string
+    latitude:
+      type: number
+      format: double
+      example: -6.226
+    longitude:
+      type: number
+      format: double
+      example: 106.857
+    is_active:
+      type: boolean
+    supports_pickup:
+      type: boolean
+    supports_local_delivery:
+      type: boolean
+    supports_courier:
+      type: boolean
+    operating_hours:
+      allOf:
+        - $ref: "#/OperatingHours"
+      description: Dihilangkan bila belum diatur.
+
+OutletCreateRequest:
+  type: object
+  description: Koordinat wajib dan masuk akal. Setiap toko butuh minimal satu outlet aktif untuk berjualan.
+  required: [name, latitude, longitude]
+  properties:
+    name:
+      type: string
+    address:
+      type: string
+    latitude:
+      type: number
+      format: double
+      minimum: -90
+      maximum: 90
+    longitude:
+      type: number
+      format: double
+      minimum: -180
+      maximum: 180
+    supports_pickup:
+      type: boolean
+      default: false
+    supports_local_delivery:
+      type: boolean
+      default: false
+    supports_courier:
+      type: boolean
+      default: true
+    operating_hours:
+      $ref: "#/OperatingHours"
+  additionalProperties: false
+
+OutletUpdateRequest:
+  type: object
+  properties:
+    name:
+      type: string
+    address:
+      type: string
+    latitude:
+      type: number
+      format: double
+    longitude:
+      type: number
+      format: double
+    is_active:
+      type: boolean
+    supports_pickup:
+      type: boolean
+    supports_local_delivery:
+      type: boolean
+    supports_courier:
+      type: boolean
+    operating_hours:
+      $ref: "#/OperatingHours"
+  additionalProperties: false
+
+Member:
+  type: object
+  required: [user_id, name, role]
+  properties:
+    user_id:
+      $ref: "./_common.yaml#/Uuid"
+    name:
+      type: string
+      example: Siti Aminah
+    email:
+      type: string
+      format: email
+    role:
+      $ref: "./_common.yaml#/MemberRole"
+    joined_at:
+      $ref: "./_common.yaml#/Timestamp"
+
+MemberInviteRequest:
+  type: object
+  required: [identifier, role]
+  properties:
+    identifier:
+      type: string
+      description: Email atau nomor telepon akun yang diundang.
+      example: siti@example.com
+    role:
+      $ref: "./_common.yaml#/MemberRole"
+  additionalProperties: false
+
+MemberRoleUpdateRequest:
+  type: object
+  description: Toko harus selalu punya minimal satu owner.
+  required: [role]
+  properties:
+    role:
+      $ref: "./_common.yaml#/MemberRole"
+  additionalProperties: false
+
+SellerDocument:
+  type: object
+  required: [id, kind, status, uploaded_at]
+  properties:
+    id:
+      $ref: "./_common.yaml#/Uuid"
+    kind:
+      $ref: "./_common.yaml#/DocumentKind"
+    status:
+      $ref: "./_common.yaml#/DocumentStatus"
+    file_url:
+      type: string
+      format: uri
+      description: URL presigned berumur pendek. Dokumen tidak pernah publik.
+    rejection_reason:
+      type: string
+      nullable: true
+    uploaded_at:
+      $ref: "./_common.yaml#/Timestamp"
+    reviewed_at:
+      $ref: "./_common.yaml#/TimestampNullable"
+
+DocumentUploadRequest:
+  type: object
+  required: [kind, storage_key]
+  properties:
+    kind:
+      $ref: "./_common.yaml#/DocumentKind"
+    storage_key:
+      type: string
+      description: Kunci objek hasil upload presigned sebelumnya.
+      example: documents/7c9d0b1a/9f8e7d6c.jpg
+  additionalProperties: false
+
+# ===========================================================================
+# Katalog dasbor (produk, varian, gambar, harga, tier)
+# ===========================================================================
+SellerProduct:
+  type: object
+  required: [id, slug, name, status, category_id, created_at]
+  properties:
+    id:
+      $ref: "./_common.yaml#/Uuid"
+    slug:
+      type: string
+    name:
+      type: string
+    description:
+      type: string
+    status:
+      $ref: "./_common.yaml#/ProductStatus"
+    category_id:
+      $ref: "./_common.yaml#/Uuid"
+    is_taxable:
+      type: boolean
+    image_count:
+      type: integer
+    variant_count:
+      type: integer
+    active_variant_count:
+      type: integer
+    rating_avg:
+      type: number
+      format: float
+    sold_count:
+      type: integer
+    created_at:
+      $ref: "./_common.yaml#/Timestamp"
+    updated_at:
+      $ref: "./_common.yaml#/Timestamp"
+
+ProductCreateRequest:
+  type: object
+  required: [name, category_id]
+  properties:
+    name:
+      type: string
+      example: Indomie Goreng
+    description:
+      type: string
+    category_id:
+      $ref: "./_common.yaml#/Uuid"
+    is_taxable:
+      type: boolean
+      default: false
+  additionalProperties: false
+
+ProductUpdateRequest:
+  type: object
+  properties:
+    name:
+      type: string
+    description:
+      type: string
+    category_id:
+      $ref: "./_common.yaml#/Uuid"
+    is_taxable:
+      type: boolean
+  additionalProperties: false
+
+SellerVariant:
+  type: object
+  required: [id, sku, name, unit_code, base_unit_code, content_quantity, weight_gram, is_active]
+  properties:
+    id:
+      $ref: "./_common.yaml#/Uuid"
+    sku:
+      type: string
+      example: IDM-GRG-DUS
+    name:
+      type: string
+      example: 1 dus (isi 40)
+    unit_code:
+      $ref: "./_common.yaml#/UnitCode"
+    base_unit_code:
+      $ref: "./_common.yaml#/UnitCode"
+    content_quantity:
+      $ref: "./_common.yaml#/Quantity"
+    weight_gram:
+      type: integer
+      minimum: 1
+    length_cm:
+      type: number
+      nullable: true
+    width_cm:
+      type: number
+      nullable: true
+    height_cm:
+      type: number
+      nullable: true
+    is_default:
+      type: boolean
+    is_active:
+      type: boolean
+    position:
+      type: integer
+
+VariantCreateRequest:
+  type: object
+  description: >-
+    `weight_gram` > 0 (ongkir kurir dari berat). `content_quantity` > 0; bila
+    `unit_code == base_unit_code` maka `content_quantity` harus 1. Satuan
+    non-pecahan menolak `content_quantity` pecahan.
+  required: [sku, name, unit_code, base_unit_code, content_quantity, weight_gram]
+  properties:
+    sku:
+      type: string
+    name:
+      type: string
+    unit_code:
+      $ref: "./_common.yaml#/UnitCode"
+    base_unit_code:
+      $ref: "./_common.yaml#/UnitCode"
+    content_quantity:
+      $ref: "./_common.yaml#/Quantity"
+    weight_gram:
+      type: integer
+      minimum: 1
+    length_cm:
+      type: number
+    width_cm:
+      type: number
+    height_cm:
+      type: number
+    is_default:
+      type: boolean
+      default: false
+  additionalProperties: false
+
+VariantUpdateRequest:
+  type: object
+  properties:
+    name:
+      type: string
+    weight_gram:
+      type: integer
+      minimum: 1
+    length_cm:
+      type: number
+    width_cm:
+      type: number
+    height_cm:
+      type: number
+    is_default:
+      type: boolean
+    is_active:
+      type: boolean
+    position:
+      type: integer
+  additionalProperties: false
+
+ImageUploadUrlRequest:
+  type: object
+  required: [content_type]
+  properties:
+    content_type:
+      type: string
+      enum: [image/jpeg, image/png, image/webp]
+    file_size:
+      type: integer
+      description: Ukuran byte, untuk membatasi presign.
+  additionalProperties: false
+
+ImageUploadUrlResponse:
+  type: object
+  required: [upload_url, storage_key, expires_at]
+  properties:
+    upload_url:
+      type: string
+      format: uri
+      description: URL presigned PUT. Browser mengunggah langsung ke object storage.
+    storage_key:
+      type: string
+      example: products/7c9d0b1a/3f1a6c2e/9f8e7d6c.jpg
+    expires_at:
+      $ref: "./_common.yaml#/Timestamp"
+
+AttachImageRequest:
+  type: object
+  required: [storage_key]
+  properties:
+    storage_key:
+      type: string
+    position:
+      type: integer
+  additionalProperties: false
+
+SellerPrice:
+  type: object
+  required: [variant_id, amount, currency, is_active]
+  properties:
+    variant_id:
+      $ref: "./_common.yaml#/Uuid"
+    outlet_id:
+      $ref: "./_common.yaml#/UuidNullable"
+      description: null = harga berlaku untuk semua outlet.
+    amount:
+      $ref: "./_common.yaml#/Money"
+    compare_at_amount:
+      $ref: "./_common.yaml#/MoneyNullable"
+    cost_amount:
+      $ref: "./_common.yaml#/MoneyNullable"
+      description: Harga pokok — hanya untuk laporan margin, tidak pernah ke pembeli.
+    currency:
+      type: string
+      enum: [IDR]
+    starts_at:
+      $ref: "./_common.yaml#/TimestampNullable"
+    ends_at:
+      $ref: "./_common.yaml#/TimestampNullable"
+    is_active:
+      type: boolean
+    tiers:
+      type: array
+      items:
+        $ref: "#/PriceTier"
+
+PriceTier:
+  type: object
+  required: [min_quantity, amount]
+  properties:
+    min_quantity:
+      $ref: "./_common.yaml#/Quantity"
+    amount:
+      $ref: "./_common.yaml#/Money"
+
+PriceSetRequest:
+  type: object
+  description: "`amount` > 0. `compare_at_amount` bila diset harus > `amount` (kalau tidak, coretan palsu)."
+  required: [amount]
+  properties:
+    outlet_id:
+      $ref: "./_common.yaml#/UuidNullable"
+    amount:
+      $ref: "./_common.yaml#/Money"
+    compare_at_amount:
+      $ref: "./_common.yaml#/MoneyNullable"
+    cost_amount:
+      $ref: "./_common.yaml#/MoneyNullable"
+    starts_at:
+      $ref: "./_common.yaml#/TimestampNullable"
+    ends_at:
+      $ref: "./_common.yaml#/TimestampNullable"
+  additionalProperties: false
+
+TierSetRequest:
+  type: object
+  description: Mengganti SELURUH tier varian sekaligus. Kuantitas menaik, harga menurun, tanpa duplikat.
+  required: [tiers]
+  properties:
+    tiers:
+      type: array
+      items:
+        $ref: "#/PriceTier"
+  additionalProperties: false
+
+# ===========================================================================
+# Inventory dasbor
+# ===========================================================================
+StockRow:
+  type: object
+  description: Kuantitas dalam satuan dasar. `available = on_hand - reserved`.
+  required: [outlet_id, variant_id, quantity_on_hand, quantity_reserved, quantity_available]
+  properties:
+    outlet_id:
+      $ref: "./_common.yaml#/Uuid"
+    variant_id:
+      $ref: "./_common.yaml#/Uuid"
+    sku:
+      type: string
+    product_name:
+      type: string
+    variant_name:
+      type: string
+    quantity_on_hand:
+      $ref: "./_common.yaml#/Quantity"
+    quantity_reserved:
+      $ref: "./_common.yaml#/Quantity"
+    quantity_available:
+      $ref: "./_common.yaml#/Quantity"
+    low_stock_threshold:
+      $ref: "./_common.yaml#/QuantityNullable"
+    is_low:
+      type: boolean
+
+StockAdjustRequest:
+  type: object
+  description: Menulis satu `Movement` (kind=adjustment) dengan catatan + aktor. Kuantitas dalam satuan dasar.
+  required: [delta, note]
+  properties:
+    delta:
+      type: number
+      description: Perubahan on_hand (boleh negatif). Bukan nilai absolut.
+      example: -12
+    note:
+      type: string
+      example: Barang rusak saat bongkar muat
+    low_stock_threshold:
+      $ref: "./_common.yaml#/QuantityNullable"
+  additionalProperties: false
+
+StockTransferRequest:
+  type: object
+  description: Menulis dua Movement (transfer_out & transfer_in) dengan kuantitas sama dalam satu transaksi.
+  required: [from_outlet_id, to_outlet_id, variant_id, quantity]
+  properties:
+    from_outlet_id:
+      $ref: "./_common.yaml#/Uuid"
+    to_outlet_id:
+      $ref: "./_common.yaml#/Uuid"
+    variant_id:
+      $ref: "./_common.yaml#/Uuid"
+    quantity:
+      $ref: "./_common.yaml#/Quantity"
+    note:
+      type: string
+  additionalProperties: false
+
+StockMovement:
+  type: object
+  description: Baris buku besar stok (append-only).
+  required: [id, outlet_id, variant_id, kind, quantity, balance_after, created_at]
+  properties:
+    id:
+      $ref: "./_common.yaml#/Uuid"
+    outlet_id:
+      $ref: "./_common.yaml#/Uuid"
+    variant_id:
+      $ref: "./_common.yaml#/Uuid"
+    kind:
+      $ref: "./_common.yaml#/MovementKind"
+    quantity:
+      type: number
+      description: Bertanda — positif menambah on_hand, negatif mengurangi.
+      example: -80
+    balance_after:
+      $ref: "./_common.yaml#/Quantity"
+    reference_type:
+      type: string
+      nullable: true
+      example: suborder
+    reference_id:
+      $ref: "./_common.yaml#/UuidNullable"
+    note:
+      type: string
+      nullable: true
+    created_at:
+      $ref: "./_common.yaml#/Timestamp"
+
+Opname:
+  type: object
+  required: [id, outlet_id, status, started_at]
+  properties:
+    id:
+      $ref: "./_common.yaml#/Uuid"
+    outlet_id:
+      $ref: "./_common.yaml#/Uuid"
+    status:
+      $ref: "./_common.yaml#/OpnameStatus"
+    started_by:
+      $ref: "./_common.yaml#/Uuid"
+    started_at:
+      $ref: "./_common.yaml#/Timestamp"
+    finished_at:
+      $ref: "./_common.yaml#/TimestampNullable"
+    items:
+      type: array
+      items:
+        $ref: "#/OpnameItem"
+
+OpnameItem:
+  type: object
+  required: [variant_id, system_quantity, counted_quantity]
+  properties:
+    variant_id:
+      $ref: "./_common.yaml#/Uuid"
+    system_quantity:
+      $ref: "./_common.yaml#/Quantity"
+    counted_quantity:
+      $ref: "./_common.yaml#/Quantity"
+    difference:
+      type: number
+      description: counted - system.
+
+OpnameStartRequest:
+  type: object
+  properties:
+    note:
+      type: string
+  additionalProperties: false
+
+OpnameSubmitRequest:
+  type: object
+  required: [items]
+  properties:
+    items:
+      type: array
+      items:
+        type: object
+        required: [variant_id, counted_quantity]
+        properties:
+          variant_id:
+            $ref: "./_common.yaml#/Uuid"
+          counted_quantity:
+            $ref: "./_common.yaml#/Quantity"
+  additionalProperties: false
+
+# ===========================================================================
+# Fulfillment dasbor
+# ===========================================================================
+DeliveryZone:
+  type: object
+  required: [outlet_id, base_fare, per_km_fare, max_distance_km, min_order_amount]
+  properties:
+    outlet_id:
+      $ref: "./_common.yaml#/Uuid"
+    base_fare:
+      $ref: "./_common.yaml#/Money"
+    per_km_fare:
+      $ref: "./_common.yaml#/Money"
+    max_distance_km:
+      type: number
+      example: 8
+    min_order_amount:
+      $ref: "./_common.yaml#/Money"
+
+DeliveryZoneRequest:
+  type: object
+  required: [base_fare, per_km_fare, max_distance_km, min_order_amount]
+  properties:
+    base_fare:
+      $ref: "./_common.yaml#/Money"
+    per_km_fare:
+      $ref: "./_common.yaml#/Money"
+    max_distance_km:
+      type: number
+      minimum: 0
+    min_order_amount:
+      $ref: "./_common.yaml#/Money"
+  additionalProperties: false
+
+ShipRequest:
+  type: object
+  description: >-
+    Membuat pengiriman lalu memindahkan suborder ke `shipped` dan commit stok.
+    Field bergantung metode fulfillment suborder.
+  properties:
+    courier_code:
+      type: string
+      description: Untuk metode `courier` — kode layanan dari quote.
+      example: jne
+    courier_service:
+      type: string
+      example: REG
+    tracking_number:
+      type: string
+      description: AWB bila sudah ada; kalau kosong dibuat lewat booking agregator.
+    driver_name:
+      type: string
+      description: Untuk metode `local_delivery`.
+    driver_phone:
+      type: string
+  additionalProperties: false
+
+RejectSuborderRequest:
+  type: object
+  description: >-
+    Menolak suborder: melepas stok suborder ini saja + refund parsial nilai
+    suborder ini. Order induk TIDAK dibatalkan.
+  required: [reason]
+  properties:
+    reason:
+      type: string
+      example: Stok fisik habis
+  additionalProperties: false
+
+ConfirmPickupRequest:
+  type: object
+  required: [code]
+  properties:
+    code:
+      type: string
+      description: Kode pickup yang ditunjukkan pembeli. Dicocokkan waktu-konstan, dibatasi laju per shipment.
+      example: "4821"
+  additionalProperties: false
+
+ProofUploadRequest:
+  type: object
+  required: [storage_key]
+  properties:
+    storage_key:
+      type: string
+      description: Kunci objek foto bukti pengiriman (hasil upload presigned).
+  additionalProperties: false
+
+# ===========================================================================
+# Promotion dasbor
+# ===========================================================================
+SellerVoucher:
+  type: object
+  required: [id, code, kind, applies_to, is_active]
+  properties:
+    id:
+      $ref: "./_common.yaml#/Uuid"
+    code:
+      type: string
+      example: BERKAH5
+    title:
+      type: string
+    kind:
+      $ref: "./_common.yaml#/VoucherKind"
+    applies_to:
+      $ref: "./_common.yaml#/VoucherAppliesTo"
+    value_bps:
+      $ref: "./_common.yaml#/BasisPointsNullable"
+    value_amount:
+      $ref: "./_common.yaml#/MoneyNullable"
+    max_discount_amount:
+      $ref: "./_common.yaml#/MoneyNullable"
+    min_order_amount:
+      $ref: "./_common.yaml#/MoneyNullable"
+    quota:
+      type: integer
+      nullable: true
+    quota_per_user:
+      type: integer
+      nullable: true
+    used_count:
+      type: integer
+    starts_at:
+      $ref: "./_common.yaml#/Timestamp"
+    ends_at:
+      $ref: "./_common.yaml#/Timestamp"
+    is_active:
+      type: boolean
+
+SellerVoucherCreateRequest:
+  type: object
+  description: >-
+    `owner_type` selalu `seller` untuk endpoint ini (di-set server). Voucher
+    `percentage` WAJIB punya `max_discount_amount`.
+  required: [code, kind, applies_to, starts_at, ends_at]
+  properties:
+    code:
+      type: string
+    title:
+      type: string
+    kind:
+      $ref: "./_common.yaml#/VoucherKind"
+    applies_to:
+      $ref: "./_common.yaml#/VoucherAppliesTo"
+    value_bps:
+      $ref: "./_common.yaml#/BasisPointsNullable"
+    value_amount:
+      $ref: "./_common.yaml#/MoneyNullable"
+    max_discount_amount:
+      $ref: "./_common.yaml#/MoneyNullable"
+    min_order_amount:
+      $ref: "./_common.yaml#/MoneyNullable"
+    quota:
+      type: integer
+    quota_per_user:
+      type: integer
+    starts_at:
+      $ref: "./_common.yaml#/Timestamp"
+    ends_at:
+      $ref: "./_common.yaml#/Timestamp"
+  additionalProperties: false
+
+SellerVoucherUpdateRequest:
+  type: object
+  properties:
+    title:
+      type: string
+    max_discount_amount:
+      $ref: "./_common.yaml#/MoneyNullable"
+    min_order_amount:
+      $ref: "./_common.yaml#/MoneyNullable"
+    quota:
+      type: integer
+    quota_per_user:
+      type: integer
+    ends_at:
+      $ref: "./_common.yaml#/Timestamp"
+    is_active:
+      type: boolean
+  additionalProperties: false
+
+# ===========================================================================
+# Pesanan (suborder) sisi penjual
+# ===========================================================================
+SellerSuborder:
+  type: object
+  description: >-
+    Tampilan suborder untuk penjual. Penjual TIDAK pernah melihat bagian penjual
+    lain dari order yang sama. Data pembeli dibatasi seperlunya pengiriman.
+  required: [id, number, status, fulfillment_method, items, amounts, created_at]
+  properties:
+    id:
+      $ref: "./_common.yaml#/Uuid"
+    number:
+      $ref: "./_common.yaml#/SuborderNumber"
+    order_number:
+      $ref: "./_common.yaml#/OrderNumber"
+    status:
+      $ref: "./_common.yaml#/SuborderStatus"
+    fulfillment_method:
+      $ref: "./_common.yaml#/FulfillmentMethod"
+    outlet_id:
+      $ref: "./_common.yaml#/Uuid"
+    buyer_name:
+      type: string
+      description: Nama penerima (dari alamat kirim).
+    shipping_address:
+      $ref: "./order.yaml#/AddressSnapshot"
+    items:
+      type: array
+      items:
+        $ref: "./order.yaml#/OrderItem"
+    amounts:
+      $ref: "./order.yaml#/SuborderAmounts"
+    commission_bps:
+      $ref: "./_common.yaml#/BasisPoints"
+    commission_amount:
+      $ref: "./_common.yaml#/Money"
+    seller_earning_amount:
+      $ref: "./_common.yaml#/Money"
+    shipment:
+      allOf:
+        - $ref: "./fulfillment.yaml#/ShipmentView"
+      description: Dihilangkan sebelum pengiriman dibuat.
+    reject_reason:
+      type: string
+      nullable: true
+    confirm_deadline_at:
+      $ref: "./_common.yaml#/TimestampNullable"
+      description: Setelah lewat, suborder ditolak otomatis oleh worker.
+    created_at:
+      $ref: "./_common.yaml#/Timestamp"
+    confirmed_at:
+      $ref: "./_common.yaml#/TimestampNullable"
+    shipped_at:
+      $ref: "./_common.yaml#/TimestampNullable"
+
+SellerSuborderCard:
+  type: object
+  required: [id, number, status, total_amount, item_count, created_at]
+  properties:
+    id:
+      $ref: "./_common.yaml#/Uuid"
+    number:
+      $ref: "./_common.yaml#/SuborderNumber"
+    status:
+      $ref: "./_common.yaml#/SuborderStatus"
+    fulfillment_method:
+      $ref: "./_common.yaml#/FulfillmentMethod"
+    total_amount:
+      $ref: "./_common.yaml#/Money"
+    item_count:
+      type: integer
+    buyer_name:
+      type: string
+    created_at:
+      $ref: "./_common.yaml#/Timestamp"
+
+# ===========================================================================
+# Ulasan sisi penjual
+# ===========================================================================
+SellerReview:
+  allOf:
+    - $ref: "./review.yaml#/Review"
+    - type: object
+      properties:
+        product_name:
+          type: string
+
+ReviewReplyRequest:
+  type: object
+  required: [body]
+  properties:
+    body:
+      type: string
+      example: Terima kasih sudah berbelanja, ditunggu order berikutnya!
+  additionalProperties: false

@@ -2,7 +2,7 @@ openapi: 3.0.3
 
 info:
   title: Klontong Net API
-  version: 0.1.0-M1
+  version: 0.2.0
   description: |
     Kontrak API marketplace Klontong Net. **Contract-first**: dokumen ini ditulis
     sebelum implementasi dan menjadi sumber kebenaran bentuk API untuk backend
@@ -11,13 +11,17 @@ info:
     OpenAPI **3.0.3** dipilih (bukan 3.1) demi dukungan tooling yang lebih luas
     untuk mock (Prism) dan codegen; `nullable: true` dipakai sesuai idiom 3.0.
 
-    ## Cakupan Milestone 1
-    Seluruh area pembeli `/api/v1/*` (publik & terautentikasi): auth, profil &
-    alamat, katalog & pencarian, keranjang, ongkir, voucher, checkout dua tahap,
-    pesanan & pembayaran, ulasan, notifikasi.
-
-    Area `/api/v1/seller/*`, `/api/v1/admin/*`, dan `/webhook/*` menyusul di
-    Milestone 2.
+    ## Cakupan
+    Seluruh API:
+    - **Pembeli** `/api/v1/*` (publik & terautentikasi): auth, profil & alamat,
+      katalog & pencarian, keranjang, ongkir, voucher, checkout dua tahap, pesanan
+      & pembayaran, ulasan, notifikasi.
+    - **Penjual** `/api/v1/seller/*`: toko, outlet, pengelola, dokumen, produk &
+      varian, harga & tier, stok & opname, pengiriman & zona antar, voucher toko,
+      siklus suborder, ulasan, saldo & pencairan.
+    - **Admin** `/api/v1/admin/*`: verifikasi toko, kategori, voucher marketplace,
+      pesanan, pembayaran & rekonsiliasi, refund, settlement & payout, audit.
+    - **Webhook** `/webhook/*`: notifikasi pembayaran gateway.
 
     ## Konvensi
     - **Envelope sukses**: `{ "data": <T>, "meta": <Meta> }`.
@@ -71,6 +75,26 @@ tags:
     description: Ulasan produk oleh pembeli terverifikasi.
   - name: Notifications
     description: Kotak masuk notifikasi dan preferensi.
+  - name: Seller Shop
+    description: Dasbor penjual — toko, outlet, pengelola, dokumen verifikasi.
+  - name: Seller Catalog
+    description: Dasbor penjual — produk, varian, gambar, harga, tier grosir.
+  - name: Seller Inventory
+    description: Dasbor penjual — stok per outlet, mutasi, stok opname.
+  - name: Seller Fulfillment
+    description: Dasbor penjual — pengiriman dan zona antar lokal.
+  - name: Seller Promotion
+    description: Dasbor penjual — voucher milik toko.
+  - name: Seller Orders
+    description: Dasbor penjual — siklus suborder (konfirmasi, kemas, kirim, tolak).
+  - name: Seller Finance
+    description: Dasbor penjual — saldo, pendapatan, pencairan.
+  - name: Seller Reviews
+    description: Dasbor penjual — ulasan pada produk toko dan balasan.
+  - name: Admin
+    description: Panel marketplace — verifikasi, kategori, voucher, pesanan, pembayaran, settlement, audit.
+  - name: Webhooks
+    description: Notifikasi masuk dari penyedia (pembayaran). Tanpa sesi, verifikasi tanda tangan.
 
 security:
   - bearerAuth: []
@@ -178,6 +202,95 @@ paths:
   /api/v1/notifications/read-all: { $ref: "./paths/notifications.yaml#/readAll" }
   /api/v1/notifications/{notificationId}/read: { $ref: "./paths/notifications.yaml#/read" }
   /api/v1/notifications/preferences: { $ref: "./paths/notifications.yaml#/preferences" }
+
+  # =========================================================================
+  # M2 — Seller dashboard (/api/v1/seller/*)
+  # =========================================================================
+
+  # --- Seller Shop ---
+  /api/v1/seller/register: { $ref: "./paths/seller-shop.yaml#/register" }
+  /api/v1/seller/me: { $ref: "./paths/seller-shop.yaml#/me" }
+  /api/v1/seller/me/payout-account: { $ref: "./paths/seller-shop.yaml#/payoutAccount" }
+  /api/v1/seller/documents: { $ref: "./paths/seller-shop.yaml#/documents" }
+  /api/v1/seller/outlets: { $ref: "./paths/seller-shop.yaml#/outlets" }
+  /api/v1/seller/outlets/{outletId}: { $ref: "./paths/seller-shop.yaml#/outletItem" }
+  /api/v1/seller/members: { $ref: "./paths/seller-shop.yaml#/members" }
+  /api/v1/seller/members/{userId}: { $ref: "./paths/seller-shop.yaml#/memberItem" }
+
+  # --- Seller Catalog ---
+  /api/v1/seller/products: { $ref: "./paths/seller-catalog.yaml#/products" }
+  /api/v1/seller/products/{productId}: { $ref: "./paths/seller-catalog.yaml#/productItem" }
+  /api/v1/seller/products/{productId}/publish: { $ref: "./paths/seller-catalog.yaml#/productPublish" }
+  /api/v1/seller/products/{productId}/variants: { $ref: "./paths/seller-catalog.yaml#/variants" }
+  /api/v1/seller/products/{productId}/images/upload-url: { $ref: "./paths/seller-catalog.yaml#/imageUploadUrl" }
+  /api/v1/seller/variants/{variantId}: { $ref: "./paths/seller-catalog.yaml#/variantItem" }
+  /api/v1/seller/variants/{variantId}/price: { $ref: "./paths/seller-catalog.yaml#/variantPrice" }
+  /api/v1/seller/variants/{variantId}/tiers: { $ref: "./paths/seller-catalog.yaml#/variantTiers" }
+  /api/v1/seller/prices: { $ref: "./paths/seller-catalog.yaml#/prices" }
+
+  # --- Seller Inventory ---
+  /api/v1/seller/outlets/{outletId}/stock: { $ref: "./paths/seller-inventory.yaml#/outletStock" }
+  /api/v1/seller/outlets/{outletId}/stock/{variantId}: { $ref: "./paths/seller-inventory.yaml#/outletStockItem" }
+  /api/v1/seller/stock/transfer: { $ref: "./paths/seller-inventory.yaml#/stockTransfer" }
+  /api/v1/seller/stock/movements: { $ref: "./paths/seller-inventory.yaml#/stockMovements" }
+  /api/v1/seller/outlets/{outletId}/opnames: { $ref: "./paths/seller-inventory.yaml#/opnames" }
+  /api/v1/seller/opnames/{opnameId}/finish: { $ref: "./paths/seller-inventory.yaml#/opnameFinish" }
+
+  # --- Seller Fulfillment ---
+  /api/v1/seller/orders/{suborderId}/shipment: { $ref: "./paths/seller-fulfillment.yaml#/suborderShipment" }
+  /api/v1/seller/shipments/{shipmentId}: { $ref: "./paths/seller-fulfillment.yaml#/shipmentItem" }
+  /api/v1/seller/shipments/{shipmentId}/confirm-pickup: { $ref: "./paths/seller-fulfillment.yaml#/shipmentConfirmPickup" }
+  /api/v1/seller/shipments/{shipmentId}/proof: { $ref: "./paths/seller-fulfillment.yaml#/shipmentProof" }
+  /api/v1/seller/outlets/{outletId}/delivery-zone: { $ref: "./paths/seller-fulfillment.yaml#/deliveryZone" }
+
+  # --- Seller Promotion ---
+  /api/v1/seller/vouchers: { $ref: "./paths/seller-promotion.yaml#/collection" }
+  /api/v1/seller/vouchers/{voucherId}: { $ref: "./paths/seller-promotion.yaml#/item" }
+
+  # --- Seller Orders ---
+  /api/v1/seller/orders: { $ref: "./paths/seller-orders.yaml#/collection" }
+  /api/v1/seller/orders/{suborderId}: { $ref: "./paths/seller-orders.yaml#/item" }
+  /api/v1/seller/orders/{suborderId}/confirm: { $ref: "./paths/seller-orders.yaml#/confirm" }
+  /api/v1/seller/orders/{suborderId}/reject: { $ref: "./paths/seller-orders.yaml#/reject" }
+  /api/v1/seller/orders/{suborderId}/pack: { $ref: "./paths/seller-orders.yaml#/pack" }
+  /api/v1/seller/orders/{suborderId}/ship: { $ref: "./paths/seller-orders.yaml#/ship" }
+  /api/v1/seller/orders/{suborderId}/ready-for-pickup: { $ref: "./paths/seller-orders.yaml#/readyForPickup" }
+
+  # --- Seller Finance ---
+  /api/v1/seller/balance: { $ref: "./paths/seller-finance.yaml#/balance" }
+  /api/v1/seller/earnings: { $ref: "./paths/seller-finance.yaml#/earnings" }
+  /api/v1/seller/payouts: { $ref: "./paths/seller-finance.yaml#/payouts" }
+  /api/v1/seller/payouts/{payoutId}: { $ref: "./paths/seller-finance.yaml#/payoutItem" }
+
+  # --- Seller Reviews ---
+  /api/v1/seller/reviews: { $ref: "./paths/seller-reviews.yaml#/collection" }
+  /api/v1/seller/reviews/{reviewId}/reply: { $ref: "./paths/seller-reviews.yaml#/reply" }
+
+  # =========================================================================
+  # M2 — Admin (/api/v1/admin/*)
+  # =========================================================================
+  /api/v1/admin/sellers: { $ref: "./paths/admin.yaml#/sellers" }
+  /api/v1/admin/sellers/{sellerId}/approve: { $ref: "./paths/admin.yaml#/sellerApprove" }
+  /api/v1/admin/sellers/{sellerId}/reject: { $ref: "./paths/admin.yaml#/sellerReject" }
+  /api/v1/admin/sellers/{sellerId}/suspend: { $ref: "./paths/admin.yaml#/sellerSuspend" }
+  /api/v1/admin/categories: { $ref: "./paths/admin.yaml#/categories" }
+  /api/v1/admin/vouchers: { $ref: "./paths/admin.yaml#/vouchers" }
+  /api/v1/admin/orders: { $ref: "./paths/admin.yaml#/orders" }
+  /api/v1/admin/orders/{orderId}/cancel: { $ref: "./paths/admin.yaml#/orderCancel" }
+  /api/v1/admin/payments: { $ref: "./paths/admin.yaml#/payments" }
+  /api/v1/admin/payments/{paymentId}/reconcile: { $ref: "./paths/admin.yaml#/paymentReconcile" }
+  /api/v1/admin/refunds: { $ref: "./paths/admin.yaml#/refunds" }
+  /api/v1/admin/settlements: { $ref: "./paths/admin.yaml#/settlements" }
+  /api/v1/admin/payouts: { $ref: "./paths/admin.yaml#/payouts" }
+  /api/v1/admin/payouts/{payoutId}/retry: { $ref: "./paths/admin.yaml#/payoutRetry" }
+  /api/v1/admin/reports/reconciliation: { $ref: "./paths/admin.yaml#/reconciliationReport" }
+  /api/v1/admin/audit: { $ref: "./paths/admin.yaml#/audit" }
+  /api/v1/admin/audit/{targetType}/{targetId}: { $ref: "./paths/admin.yaml#/auditByTarget" }
+
+  # =========================================================================
+  # M2 — Webhooks (/webhook/*)
+  # =========================================================================
+  /webhook/payment/{provider}: { $ref: "./paths/webhook.yaml#/payment" }
 
 components:
   securitySchemes:

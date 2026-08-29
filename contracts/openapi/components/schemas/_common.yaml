@@ -265,6 +265,76 @@ PaymentStatus:
 FulfillmentMethod:
   $ref: "#/ShipmentMethod"
 
+# --- enum area seller/admin (M2) ---
+SellerStatus:
+  type: string
+  enum: [pending, verified, suspended]
+
+MemberRole:
+  type: string
+  enum: [owner, manager, staff]
+
+DocumentKind:
+  type: string
+  enum: [ktp, npwp, other]
+
+DocumentStatus:
+  type: string
+  enum: [pending, approved, rejected]
+
+ProductStatus:
+  type: string
+  description: Produk non-`active` tidak muncul di penelusuran publik.
+  enum: [draft, active, archived]
+
+MovementKind:
+  type: string
+  description: Jenis pergerakan stok pada buku besar inventory (append-only).
+  enum:
+    - purchase
+    - sale
+    - return
+    - adjustment
+    - transfer_in
+    - transfer_out
+    - damage
+    - expiry
+
+OpnameStatus:
+  type: string
+  enum: [draft, counting, finished]
+
+EarningStatus:
+  type: string
+  enum: [pending, matured, paid, reversed]
+
+PayoutStatus:
+  type: string
+  enum: [requested, processing, paid, failed]
+
+RefundStatus:
+  type: string
+  enum: [requested, processing, completed, failed]
+
+VoucherKind:
+  type: string
+  enum: [percentage, fixed_amount, free_shipping]
+
+VoucherOwnerType:
+  type: string
+  description: >-
+    Menentukan siapa menanggung diskon. Voucher `seller` hanya berlaku untuk
+    suborder milik seller itu.
+  enum: [marketplace, seller]
+
+VoucherAppliesTo:
+  type: string
+  enum: [items, shipping]
+
+AuditActorType:
+  type: string
+  enum: [user, seller, admin, system, gateway, courier]
+
 # ---------------------------------------------------------------------------
 # Bentuk umum lain
 # ---------------------------------------------------------------------------

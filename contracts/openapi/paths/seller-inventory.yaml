@@ -1,0 +1,230 @@
+# /api/v1/seller/* — stok per outlet, mutasi, opname. Kuantitas dalam satuan dasar.
+
+outletStock:
+  parameters:
+    - name: outletId
+      in: path
+      required: true
+      schema: { $ref: "../components/schemas/_common.yaml#/Uuid" }
+    - $ref: "../components/parameters.yaml#/LimitParam"
+    - $ref: "../components/parameters.yaml#/CursorParam"
+  get:
+    operationId: listOutletStock
+    tags: [Seller Inventory]
+    summary: Daftar stok satu outlet
+    description: "`on_hand`, `reserved`, `available` ditampilkan terpisah."
+    responses:
+      "200":
+        description: Daftar stok (paginasi keyset).
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data, meta]
+              properties:
+                data:
+                  type: array
+                  items:
+                    $ref: "../components/schemas/seller.yaml#/StockRow"
+                meta:
+                  $ref: "../components/schemas/_common.yaml#/Meta"
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "404": { $ref: "../components/responses.yaml#/NotFound" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+outletStockItem:
+  parameters:
+    - name: outletId
+      in: path
+      required: true
+      schema: { $ref: "../components/schemas/_common.yaml#/Uuid" }
+    - name: variantId
+      in: path
+      required: true
+      schema: { $ref: "../components/schemas/_common.yaml#/Uuid" }
+  patch:
+    operationId: adjustOutletStock
+    tags: [Seller Inventory]
+    summary: Penyesuaian stok (delta)
+    description: Menulis satu Movement (kind=adjustment) beserta catatan & aktor. `delta` bukan nilai absolut.
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas/seller.yaml#/StockAdjustRequest"
+    responses:
+      "200":
+        description: Stok disesuaikan.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/seller.yaml#/StockRow"
+      "400": { $ref: "../components/responses.yaml#/BadRequest" }
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "404": { $ref: "../components/responses.yaml#/NotFound" }
+      "409":
+        description: "`negative_stock` — hasil penyesuaian akan negatif."
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/_common.yaml#/ErrorEnvelope"
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+stockTransfer:
+  post:
+    operationId: transferStock
+    tags: [Seller Inventory]
+    summary: Pindahkan stok antar outlet
+    description: Menulis dua Movement (transfer_out & transfer_in) dengan kuantitas sama dalam satu transaksi.
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas/seller.yaml#/StockTransferRequest"
+    responses:
+      "204":
+        description: Transfer selesai.
+      "400": { $ref: "../components/responses.yaml#/BadRequest" }
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "404": { $ref: "../components/responses.yaml#/NotFound" }
+      "409": { $ref: "../components/responses.yaml#/Conflict" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+stockMovements:
+  get:
+    operationId: listStockMovements
+    tags: [Seller Inventory]
+    summary: Buku besar pergerakan stok
+    parameters:
+      - $ref: "../components/parameters.yaml#/LimitParam"
+      - $ref: "../components/parameters.yaml#/CursorParam"
+      - name: outlet_id
+        in: query
+        schema: { $ref: "../components/schemas/_common.yaml#/Uuid" }
+      - name: variant_id
+        in: query
+        schema: { $ref: "../components/schemas/_common.yaml#/Uuid" }
+      - name: kind
+        in: query
+        schema: { $ref: "../components/schemas/_common.yaml#/MovementKind" }
+    responses:
+      "200":
+        description: Daftar pergerakan (paginasi keyset).
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data, meta]
+              properties:
+                data:
+                  type: array
+                  items:
+                    $ref: "../components/schemas/seller.yaml#/StockMovement"
+                meta:
+                  $ref: "../components/schemas/_common.yaml#/Meta"
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+opnames:
+  parameters:
+    - name: outletId
+      in: path
+      required: true
+      schema: { $ref: "../components/schemas/_common.yaml#/Uuid" }
+  get:
+    operationId: listOpnames
+    tags: [Seller Inventory]
+    summary: Daftar stok opname outlet
+    parameters:
+      - $ref: "../components/parameters.yaml#/LimitParam"
+      - $ref: "../components/parameters.yaml#/CursorParam"
+    responses:
+      "200":
+        description: Daftar opname (paginasi keyset).
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data, meta]
+              properties:
+                data:
+                  type: array
+                  items:
+                    $ref: "../components/schemas/seller.yaml#/Opname"
+                meta:
+                  $ref: "../components/schemas/_common.yaml#/Meta"
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "404": { $ref: "../components/responses.yaml#/NotFound" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+  post:
+    operationId: startOpname
+    tags: [Seller Inventory]
+    summary: Mulai stok opname
+    requestBody:
+      required: false
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas/seller.yaml#/OpnameStartRequest"
+    responses:
+      "201":
+        description: Opname dimulai.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/seller.yaml#/Opname"
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "404": { $ref: "../components/responses.yaml#/NotFound" }
+      "409": { $ref: "../components/responses.yaml#/Conflict" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+opnameFinish:
+  parameters:
+    - name: opnameId
+      in: path
+      required: true
+      schema: { $ref: "../components/schemas/_common.yaml#/Uuid" }
+  post:
+    operationId: finishOpname
+    tags: [Seller Inventory]
+    summary: Selesaikan opname
+    description: Selisih hitung dicatat sebagai Movement `kind=adjustment` dalam satu transaksi. Resumable.
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas/seller.yaml#/OpnameSubmitRequest"
+    responses:
+      "200":
+        description: Opname selesai; penyesuaian tercatat.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/seller.yaml#/Opname"
+      "400": { $ref: "../components/responses.yaml#/BadRequest" }
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "404": { $ref: "../components/responses.yaml#/NotFound" }
+      "409": { $ref: "../components/responses.yaml#/Conflict" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }

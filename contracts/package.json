@@ -11,7 +11,7 @@
     "mock": "prism mock openapi/openapi.yaml -p 4010",
     "mock:dynamic": "prism mock openapi/openapi.yaml -p 4010 --dynamic",
     "preview": "redocly preview-docs openapi/openapi.yaml",
-    "ci": "npm run lint && npm run bundle"
+    "ci": "pnpm run lint && pnpm run bundle"
   },
   "devDependencies": {
     "@redocly/cli": "^1.25.0",

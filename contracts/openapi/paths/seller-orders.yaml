@@ -1,0 +1,247 @@
+# /api/v1/seller/orders* — siklus suborder dari sisi penjual.
+# Catatan scaffold: route memakai `/seller/orders/{suborderId}` (parameternya ADALAH
+# id suborder, bukan order). Task doc 12 menulis `/seller/suborders/{id}` — kontrak
+# mengikuti routes.go, diseragamkan saat implementasi.
+# Transisi mengikuti state.go: `shipped` tidak bisa dibatalkan; `delivered` != `completed`.
+
+collection:
+  get:
+    operationId: listSellerSuborders
+    tags: [Seller Orders]
+    summary: Daftar suborder toko
+    description: Penjual hanya melihat suborder miliknya sendiri, tidak pernah bagian penjual lain.
+    parameters:
+      - $ref: "../components/parameters.yaml#/LimitParam"
+      - $ref: "../components/parameters.yaml#/CursorParam"
+      - name: status
+        in: query
+        schema: { $ref: "../components/schemas/_common.yaml#/SuborderStatus" }
+    responses:
+      "200":
+        description: Daftar suborder (paginasi keyset).
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data, meta]
+              properties:
+                data:
+                  type: array
+                  items:
+                    $ref: "../components/schemas/seller.yaml#/SellerSuborderCard"
+                meta:
+                  $ref: "../components/schemas/_common.yaml#/Meta"
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+item:
+  parameters:
+    - name: suborderId
+      in: path
+      required: true
+      schema: { $ref: "../components/schemas/_common.yaml#/Uuid" }
+  get:
+    operationId: getSellerSuborder
+    tags: [Seller Orders]
+    summary: Detail suborder toko
+    responses:
+      "200":
+        description: Detail suborder.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/seller.yaml#/SellerSuborder"
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "404": { $ref: "../components/responses.yaml#/NotFound" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+confirm:
+  parameters:
+    - name: suborderId
+      in: path
+      required: true
+      schema: { $ref: "../components/schemas/_common.yaml#/Uuid" }
+  post:
+    operationId: confirmSuborder
+    tags: [Seller Orders]
+    summary: Konfirmasi suborder
+    description: "`awaiting_confirmation` -> `confirmed`."
+    responses:
+      "200":
+        description: Suborder dikonfirmasi.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/seller.yaml#/SellerSuborder"
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "404": { $ref: "../components/responses.yaml#/NotFound" }
+      "409":
+        description: "`invalid_transition`."
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/_common.yaml#/ErrorEnvelope"
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+reject:
+  parameters:
+    - name: suborderId
+      in: path
+      required: true
+      schema: { $ref: "../components/schemas/_common.yaml#/Uuid" }
+  post:
+    operationId: rejectSuborder
+    tags: [Seller Orders]
+    summary: Tolak suborder
+    description: >-
+      Melepas stok suborder ini saja + refund parsial nilai suborder ini. Order
+      induk TIDAK dibatalkan; statusnya dihitung ulang dari anak-anaknya.
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas/seller.yaml#/RejectSuborderRequest"
+    responses:
+      "200":
+        description: Suborder ditolak; refund parsial diajukan.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/seller.yaml#/SellerSuborder"
+      "400": { $ref: "../components/responses.yaml#/BadRequest" }
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "404": { $ref: "../components/responses.yaml#/NotFound" }
+      "409":
+        description: "`invalid_transition`."
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/_common.yaml#/ErrorEnvelope"
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+pack:
+  parameters:
+    - name: suborderId
+      in: path
+      required: true
+      schema: { $ref: "../components/schemas/_common.yaml#/Uuid" }
+  post:
+    operationId: packSuborder
+    tags: [Seller Orders]
+    summary: Mulai pengemasan
+    description: "`confirmed` -> `packing`."
+    responses:
+      "200":
+        description: Suborder masuk pengemasan.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/seller.yaml#/SellerSuborder"
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "404": { $ref: "../components/responses.yaml#/NotFound" }
+      "409":
+        description: "`invalid_transition`."
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/_common.yaml#/ErrorEnvelope"
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+ship:
+  parameters:
+    - name: suborderId
+      in: path
+      required: true
+      schema: { $ref: "../components/schemas/_common.yaml#/Uuid" }
+  post:
+    operationId: shipSuborder
+    tags: [Seller Orders]
+    summary: Kirim suborder
+    description: >-
+      Membuat pengiriman (di luar transaksi), lalu `Transition(shipped)` + commit
+      stok (menulis Movement `kind=sale`). Setelah `shipped` suborder tidak bisa
+      dibatalkan — hanya retur (alur terpisah).
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas/seller.yaml#/ShipRequest"
+    responses:
+      "200":
+        description: Suborder dikirim.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/seller.yaml#/SellerSuborder"
+      "400": { $ref: "../components/responses.yaml#/BadRequest" }
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "404": { $ref: "../components/responses.yaml#/NotFound" }
+      "409":
+        description: "`invalid_transition` atau stok tidak cukup untuk commit."
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/_common.yaml#/ErrorEnvelope"
+      "502": { $ref: "../components/responses.yaml#/BadGateway" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+readyForPickup:
+  parameters:
+    - name: suborderId
+      in: path
+      required: true
+      schema: { $ref: "../components/schemas/_common.yaml#/Uuid" }
+  post:
+    operationId: markSuborderReadyForPickup
+    tags: [Seller Orders]
+    summary: Tandai siap diambil
+    description: Menerbitkan kode pengambilan via fulfillment. Untuk suborder metode `pickup`.
+    responses:
+      "200":
+        description: Suborder siap diambil; kode diterbitkan.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/seller.yaml#/SellerSuborder"
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "404": { $ref: "../components/responses.yaml#/NotFound" }
+      "409":
+        description: "`invalid_transition` atau metode bukan `pickup`."
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/_common.yaml#/ErrorEnvelope"
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }

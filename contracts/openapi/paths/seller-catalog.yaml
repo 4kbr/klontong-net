@@ -1,0 +1,398 @@
+# /api/v1/seller/* — produk, varian, gambar, harga, tier (dasbor penjual).
+
+products:
+  get:
+    operationId: listOwnProducts
+    tags: [Seller Catalog]
+    summary: Daftar produk sendiri
+    parameters:
+      - $ref: "../components/parameters.yaml#/LimitParam"
+      - $ref: "../components/parameters.yaml#/CursorParam"
+      - name: status
+        in: query
+        schema: { $ref: "../components/schemas/_common.yaml#/ProductStatus" }
+    responses:
+      "200":
+        description: Daftar produk (paginasi keyset).
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data, meta]
+              properties:
+                data:
+                  type: array
+                  items:
+                    $ref: "../components/schemas/seller.yaml#/SellerProduct"
+                meta:
+                  $ref: "../components/schemas/_common.yaml#/Meta"
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+  post:
+    operationId: createSellerProduct
+    tags: [Seller Catalog]
+    summary: Buat produk (draft)
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas/seller.yaml#/ProductCreateRequest"
+    responses:
+      "201":
+        description: Produk dibuat.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/seller.yaml#/SellerProduct"
+      "400": { $ref: "../components/responses.yaml#/BadRequest" }
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+productItem:
+  parameters:
+    - name: productId
+      in: path
+      required: true
+      schema: { $ref: "../components/schemas/_common.yaml#/Uuid" }
+  get:
+    operationId: getSellerProduct
+    tags: [Seller Catalog]
+    summary: Detail produk sendiri
+    responses:
+      "200":
+        description: Detail produk.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/seller.yaml#/SellerProduct"
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "404": { $ref: "../components/responses.yaml#/NotFound" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+  patch:
+    operationId: updateSellerProduct
+    tags: [Seller Catalog]
+    summary: Perbarui produk
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas/seller.yaml#/ProductUpdateRequest"
+    responses:
+      "200":
+        description: Produk diperbarui.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/seller.yaml#/SellerProduct"
+      "400": { $ref: "../components/responses.yaml#/BadRequest" }
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "404": { $ref: "../components/responses.yaml#/NotFound" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+  delete:
+    operationId: archiveSellerProduct
+    tags: [Seller Catalog]
+    summary: Arsipkan produk
+    responses:
+      "204":
+        description: Produk diarsipkan.
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "404": { $ref: "../components/responses.yaml#/NotFound" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+productPublish:
+  parameters:
+    - name: productId
+      in: path
+      required: true
+      schema: { $ref: "../components/schemas/_common.yaml#/Uuid" }
+  post:
+    operationId: publishSellerProduct
+    tags: [Seller Catalog]
+    summary: Terbitkan produk
+    description: Ditolak bila tidak ada varian aktif, tidak ada foto, atau harga belum diset.
+    responses:
+      "200":
+        description: Produk terbit (`active`).
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/seller.yaml#/SellerProduct"
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "404": { $ref: "../components/responses.yaml#/NotFound" }
+      "409":
+        description: "Prasyarat tidak terpenuhi (`product_has_no_variant`, `product_has_no_image`, harga belum diset)."
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/_common.yaml#/ErrorEnvelope"
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+variants:
+  parameters:
+    - name: productId
+      in: path
+      required: true
+      schema: { $ref: "../components/schemas/_common.yaml#/Uuid" }
+  get:
+    operationId: listSellerVariants
+    tags: [Seller Catalog]
+    summary: Daftar varian produk
+    responses:
+      "200":
+        description: Daftar varian.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  type: array
+                  items:
+                    $ref: "../components/schemas/seller.yaml#/SellerVariant"
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "404": { $ref: "../components/responses.yaml#/NotFound" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+  post:
+    operationId: createSellerVariant
+    tags: [Seller Catalog]
+    summary: Tambah varian
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas/seller.yaml#/VariantCreateRequest"
+    responses:
+      "201":
+        description: Varian dibuat.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/seller.yaml#/SellerVariant"
+      "400": { $ref: "../components/responses.yaml#/BadRequest" }
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "404": { $ref: "../components/responses.yaml#/NotFound" }
+      "409": { $ref: "../components/responses.yaml#/Conflict" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+variantItem:
+  parameters:
+    - name: variantId
+      in: path
+      required: true
+      schema: { $ref: "../components/schemas/_common.yaml#/Uuid" }
+  patch:
+    operationId: updateSellerVariant
+    tags: [Seller Catalog]
+    summary: Perbarui varian
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas/seller.yaml#/VariantUpdateRequest"
+    responses:
+      "200":
+        description: Varian diperbarui.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/seller.yaml#/SellerVariant"
+      "400": { $ref: "../components/responses.yaml#/BadRequest" }
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "404": { $ref: "../components/responses.yaml#/NotFound" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+  delete:
+    operationId: deactivateSellerVariant
+    tags: [Seller Catalog]
+    summary: Nonaktifkan varian
+    description: Peringatan bila ini varian aktif terakhir.
+    responses:
+      "204":
+        description: Varian dinonaktifkan.
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "404": { $ref: "../components/responses.yaml#/NotFound" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+imageUploadUrl:
+  parameters:
+    - name: productId
+      in: path
+      required: true
+      schema: { $ref: "../components/schemas/_common.yaml#/Uuid" }
+  post:
+    operationId: requestSellerImageUploadUrl
+    tags: [Seller Catalog]
+    summary: Minta URL upload gambar (presigned PUT)
+    description: Browser mengunggah biner langsung ke object storage memakai `upload_url`, lalu lampirkan `storage_key` ke produk.
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas/seller.yaml#/ImageUploadUrlRequest"
+    responses:
+      "200":
+        description: URL presigned.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/seller.yaml#/ImageUploadUrlResponse"
+      "400": { $ref: "../components/responses.yaml#/BadRequest" }
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "404": { $ref: "../components/responses.yaml#/NotFound" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+variantPrice:
+  parameters:
+    - name: variantId
+      in: path
+      required: true
+      schema: { $ref: "../components/schemas/_common.yaml#/Uuid" }
+  get:
+    operationId: getSellerVariantPrice
+    tags: [Seller Catalog]
+    summary: Harga + tier varian (tampilan dasbor, termasuk harga pokok)
+    responses:
+      "200":
+        description: Harga varian.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/seller.yaml#/SellerPrice"
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "404": { $ref: "../components/responses.yaml#/NotFound" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+  put:
+    operationId: setSellerVariantPrice
+    tags: [Seller Catalog]
+    summary: Setel harga varian
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas/seller.yaml#/PriceSetRequest"
+    responses:
+      "200":
+        description: Harga disimpan.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/seller.yaml#/SellerPrice"
+      "400": { $ref: "../components/responses.yaml#/BadRequest" }
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "404": { $ref: "../components/responses.yaml#/NotFound" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+variantTiers:
+  parameters:
+    - name: variantId
+      in: path
+      required: true
+      schema: { $ref: "../components/schemas/_common.yaml#/Uuid" }
+  put:
+    operationId: setSellerVariantTiers
+    tags: [Seller Catalog]
+    summary: Ganti seluruh tier grosir varian
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas/seller.yaml#/TierSetRequest"
+    responses:
+      "200":
+        description: Tier disimpan.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/seller.yaml#/SellerPrice"
+      "400": { $ref: "../components/responses.yaml#/BadRequest" }
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "404": { $ref: "../components/responses.yaml#/NotFound" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+prices:
+  get:
+    operationId: listSellerPrices
+    tags: [Seller Catalog]
+    summary: Daftar harga toko
+    parameters:
+      - $ref: "../components/parameters.yaml#/LimitParam"
+      - $ref: "../components/parameters.yaml#/CursorParam"
+    responses:
+      "200":
+        description: Daftar harga (paginasi keyset).
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data, meta]
+              properties:
+                data:
+                  type: array
+                  items:
+                    $ref: "../components/schemas/seller.yaml#/SellerPrice"
+                meta:
+                  $ref: "../components/schemas/_common.yaml#/Meta"
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }

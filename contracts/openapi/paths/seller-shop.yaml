@@ -1,0 +1,345 @@
+# /api/v1/seller/* — toko, outlet, pengelola, dokumen.
+# Semua operasi: bearerAuth (global) + peran `seller` + keanggotaan toko (dicek usecase).
+# Perubahan rekening payout = owner saja.
+
+register:
+  post:
+    operationId: sellerRegister
+    tags: [Seller Shop]
+    summary: Buka toko
+    description: Menambah peran `seller` ke akun yang login (bukan akun kedua). Toko mulai berstatus `pending`.
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas/seller.yaml#/ShopRegisterRequest"
+    responses:
+      "201":
+        description: Toko dibuat (pending verifikasi).
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/seller.yaml#/ShopDashboard"
+      "400": { $ref: "../components/responses.yaml#/BadRequest" }
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "409": { $ref: "../components/responses.yaml#/Conflict" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+me:
+  get:
+    operationId: getSellerShop
+    tags: [Seller Shop]
+    summary: Detail toko sendiri (tampilan dasbor)
+    responses:
+      "200":
+        description: Detail toko.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/seller.yaml#/ShopDashboard"
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+  patch:
+    operationId: updateSellerShop
+    tags: [Seller Shop]
+    summary: Perbarui toko
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas/seller.yaml#/ShopUpdateRequest"
+    responses:
+      "200":
+        description: Toko diperbarui.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/seller.yaml#/ShopDashboard"
+      "400": { $ref: "../components/responses.yaml#/BadRequest" }
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+payoutAccount:
+  put:
+    operationId: setSellerPayoutAccount
+    tags: [Seller Shop]
+    summary: Setel rekening pencairan (owner saja)
+    description: Nama pemilik rekening diverifikasi ke penyedia transfer saat disimpan.
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas/seller.yaml#/PayoutAccountRequest"
+    responses:
+      "200":
+        description: Rekening disimpan.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/seller.yaml#/ShopDashboard"
+      "400": { $ref: "../components/responses.yaml#/BadRequest" }
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "422": { $ref: "../components/responses.yaml#/UnprocessableEntity" }
+      "502": { $ref: "../components/responses.yaml#/BadGateway" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+documents:
+  get:
+    operationId: listSellerDocuments
+    tags: [Seller Shop]
+    summary: Daftar dokumen verifikasi
+    responses:
+      "200":
+        description: Daftar dokumen.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  type: array
+                  items:
+                    $ref: "../components/schemas/seller.yaml#/SellerDocument"
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+  post:
+    operationId: uploadSellerDocument
+    tags: [Seller Shop]
+    summary: Lampirkan dokumen verifikasi (KTP/NPWP)
+    description: Dokumen tidak pernah publik. Unggah biner lewat presigned URL, lalu lampirkan `storage_key` di sini.
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas/seller.yaml#/DocumentUploadRequest"
+    responses:
+      "201":
+        description: Dokumen dilampirkan (pending review).
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/seller.yaml#/SellerDocument"
+      "400": { $ref: "../components/responses.yaml#/BadRequest" }
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+outlets:
+  get:
+    operationId: listSellerOutlets
+    tags: [Seller Shop]
+    summary: Daftar outlet
+    responses:
+      "200":
+        description: Daftar outlet.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  type: array
+                  items:
+                    $ref: "../components/schemas/seller.yaml#/Outlet"
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+  post:
+    operationId: createSellerOutlet
+    tags: [Seller Shop]
+    summary: Tambah outlet
+    description: Koordinat wajib. Setiap toko butuh ≥ 1 outlet aktif untuk berjualan.
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas/seller.yaml#/OutletCreateRequest"
+    responses:
+      "201":
+        description: Outlet dibuat.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/seller.yaml#/Outlet"
+      "400": { $ref: "../components/responses.yaml#/BadRequest" }
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+outletItem:
+  parameters:
+    - name: outletId
+      in: path
+      required: true
+      schema: { $ref: "../components/schemas/_common.yaml#/Uuid" }
+  patch:
+    operationId: updateSellerOutlet
+    tags: [Seller Shop]
+    summary: Perbarui outlet
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas/seller.yaml#/OutletUpdateRequest"
+    responses:
+      "200":
+        description: Outlet diperbarui.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/seller.yaml#/Outlet"
+      "400": { $ref: "../components/responses.yaml#/BadRequest" }
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "404": { $ref: "../components/responses.yaml#/NotFound" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+  delete:
+    operationId: deactivateSellerOutlet
+    tags: [Seller Shop]
+    summary: Nonaktifkan outlet
+    description: Ditolak / diperingatkan bila ini outlet aktif terakhir yang punya pesanan berjalan.
+    responses:
+      "204":
+        description: Outlet dinonaktifkan.
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "404": { $ref: "../components/responses.yaml#/NotFound" }
+      "409": { $ref: "../components/responses.yaml#/Conflict" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+members:
+  get:
+    operationId: listSellerMembers
+    tags: [Seller Shop]
+    summary: Daftar pengelola toko
+    responses:
+      "200":
+        description: Daftar pengelola.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  type: array
+                  items:
+                    $ref: "../components/schemas/seller.yaml#/Member"
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+  post:
+    operationId: inviteSellerMember
+    tags: [Seller Shop]
+    summary: Undang pengelola
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas/seller.yaml#/MemberInviteRequest"
+    responses:
+      "201":
+        description: Pengelola ditambahkan.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/seller.yaml#/Member"
+      "400": { $ref: "../components/responses.yaml#/BadRequest" }
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "404": { $ref: "../components/responses.yaml#/NotFound" }
+      "409": { $ref: "../components/responses.yaml#/Conflict" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+memberItem:
+  parameters:
+    - name: userId
+      in: path
+      required: true
+      schema: { $ref: "../components/schemas/_common.yaml#/Uuid" }
+  patch:
+    operationId: updateSellerMemberRole
+    tags: [Seller Shop]
+    summary: Ubah peran pengelola
+    description: Toko harus selalu punya minimal satu owner.
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas/seller.yaml#/MemberRoleUpdateRequest"
+    responses:
+      "200":
+        description: Peran diubah.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/seller.yaml#/Member"
+      "400": { $ref: "../components/responses.yaml#/BadRequest" }
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "404": { $ref: "../components/responses.yaml#/NotFound" }
+      "409": { $ref: "../components/responses.yaml#/Conflict" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+  delete:
+    operationId: removeSellerMember
+    tags: [Seller Shop]
+    summary: Keluarkan pengelola
+    description: "`cannot_remove_last_owner` bila mencoba mengeluarkan owner terakhir."
+    responses:
+      "204":
+        description: Pengelola dikeluarkan.
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "404": { $ref: "../components/responses.yaml#/NotFound" }
+      "409": { $ref: "../components/responses.yaml#/Conflict" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }

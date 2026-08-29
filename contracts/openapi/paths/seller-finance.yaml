@@ -1,0 +1,152 @@
+# /api/v1/seller/* — saldo, pendapatan, pencairan.
+
+balance:
+  get:
+    operationId: getSellerBalance
+    tags: [Seller Finance]
+    summary: Saldo toko (pending & available)
+    responses:
+      "200":
+        description: Saldo.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/settlement.yaml#/SellerBalance"
+            examples:
+              sample:
+                value:
+                  data:
+                    pending: 450000
+                    available: 1275000
+                    next_maturity_at: "2026-09-03T00:00:00Z"
+                    currency: IDR
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+earnings:
+  get:
+    operationId: listSellerEarnings
+    tags: [Seller Finance]
+    summary: Daftar pendapatan per suborder
+    parameters:
+      - $ref: "../components/parameters.yaml#/LimitParam"
+      - $ref: "../components/parameters.yaml#/CursorParam"
+      - name: status
+        in: query
+        schema: { $ref: "../components/schemas/_common.yaml#/EarningStatus" }
+    responses:
+      "200":
+        description: Daftar pendapatan (paginasi keyset).
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data, meta]
+              properties:
+                data:
+                  type: array
+                  items:
+                    $ref: "../components/schemas/settlement.yaml#/Earning"
+                meta:
+                  $ref: "../components/schemas/_common.yaml#/Meta"
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+payouts:
+  get:
+    operationId: listSellerPayouts
+    tags: [Seller Finance]
+    summary: Daftar pencairan
+    parameters:
+      - $ref: "../components/parameters.yaml#/LimitParam"
+      - $ref: "../components/parameters.yaml#/CursorParam"
+      - name: status
+        in: query
+        schema: { $ref: "../components/schemas/_common.yaml#/PayoutStatus" }
+    responses:
+      "200":
+        description: Daftar pencairan (paginasi keyset).
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data, meta]
+              properties:
+                data:
+                  type: array
+                  items:
+                    $ref: "../components/schemas/settlement.yaml#/Payout"
+                meta:
+                  $ref: "../components/schemas/_common.yaml#/Meta"
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+  post:
+    operationId: requestSellerPayout
+    tags: [Seller Finance]
+    summary: Ajukan pencairan
+    description: >-
+      Server memeriksa rekening tervalidasi, saldo available cukup (dari ledger),
+      tidak ada payout berjalan, dan di atas ambang minimum. Header
+      `Idempotency-Key` wajib.
+    parameters:
+      - $ref: "../components/parameters.yaml#/IdempotencyKeyHeader"
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas/settlement.yaml#/PayoutRequest"
+    responses:
+      "201":
+        description: Pencairan diajukan.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/settlement.yaml#/Payout"
+      "400": { $ref: "../components/responses.yaml#/BadRequest" }
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "409":
+        description: "`payout_in_progress`, `insufficient_balance`, `below_minimum_payout`, `no_payout_account`."
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/_common.yaml#/ErrorEnvelope"
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+payoutItem:
+  parameters:
+    - name: payoutId
+      in: path
+      required: true
+      schema: { $ref: "../components/schemas/_common.yaml#/Uuid" }
+  get:
+    operationId: getSellerPayout
+    tags: [Seller Finance]
+    summary: Detail pencairan
+    responses:
+      "200":
+        description: Detail pencairan.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/settlement.yaml#/Payout"
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "404": { $ref: "../components/responses.yaml#/NotFound" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }

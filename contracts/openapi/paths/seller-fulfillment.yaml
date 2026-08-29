@@ -1,0 +1,210 @@
+# /api/v1/seller/* — pengiriman & zona antar lokal.
+
+suborderShipment:
+  parameters:
+    - name: suborderId
+      in: path
+      required: true
+      schema: { $ref: "../components/schemas/_common.yaml#/Uuid" }
+  post:
+    operationId: createSuborderShipment
+    tags: [Seller Fulfillment]
+    summary: Buat pengiriman untuk suborder
+    description: >-
+      Untuk `courier` membuat booking agregator & menyimpan AWB; `local_delivery`
+      mencatat nama/telepon kurir; `pickup` menerbitkan kode pengambilan. Panggilan
+      agregator terjadi di luar transaksi.
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas/seller.yaml#/ShipRequest"
+    responses:
+      "201":
+        description: Pengiriman dibuat.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/fulfillment.yaml#/ShipmentView"
+      "400": { $ref: "../components/responses.yaml#/BadRequest" }
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "404": { $ref: "../components/responses.yaml#/NotFound" }
+      "409": { $ref: "../components/responses.yaml#/Conflict" }
+      "502": { $ref: "../components/responses.yaml#/BadGateway" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+shipmentItem:
+  parameters:
+    - name: shipmentId
+      in: path
+      required: true
+      schema: { $ref: "../components/schemas/_common.yaml#/Uuid" }
+  patch:
+    operationId: updateShipment
+    tags: [Seller Fulfillment]
+    summary: Perbarui status/field pengiriman
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              status:
+                $ref: "../components/schemas/_common.yaml#/ShipmentStatus"
+              tracking_number:
+                type: string
+              driver_name:
+                type: string
+              driver_phone:
+                type: string
+            additionalProperties: false
+    responses:
+      "200":
+        description: Pengiriman diperbarui.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/fulfillment.yaml#/ShipmentView"
+      "400": { $ref: "../components/responses.yaml#/BadRequest" }
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "404": { $ref: "../components/responses.yaml#/NotFound" }
+      "409": { $ref: "../components/responses.yaml#/Conflict" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+shipmentConfirmPickup:
+  parameters:
+    - name: shipmentId
+      in: path
+      required: true
+      schema: { $ref: "../components/schemas/_common.yaml#/Uuid" }
+  post:
+    operationId: confirmShipmentPickup
+    tags: [Seller Fulfillment]
+    summary: Konfirmasi pengambilan dengan kode
+    description: Kode dicocokkan waktu-konstan; dibatasi laju per shipment.
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas/seller.yaml#/ConfirmPickupRequest"
+    responses:
+      "200":
+        description: Pengambilan dikonfirmasi.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/fulfillment.yaml#/ShipmentView"
+      "400": { $ref: "../components/responses.yaml#/BadRequest" }
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "404": { $ref: "../components/responses.yaml#/NotFound" }
+      "409":
+        description: "`invalid_pickup_code` atau `pickup_expired`."
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/_common.yaml#/ErrorEnvelope"
+      "429": { $ref: "../components/responses.yaml#/TooManyRequests" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+shipmentProof:
+  parameters:
+    - name: shipmentId
+      in: path
+      required: true
+      schema: { $ref: "../components/schemas/_common.yaml#/Uuid" }
+  post:
+    operationId: uploadShipmentProof
+    tags: [Seller Fulfillment]
+    summary: Unggah bukti pengiriman
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas/seller.yaml#/ProofUploadRequest"
+    responses:
+      "200":
+        description: Bukti disimpan.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/fulfillment.yaml#/ShipmentView"
+      "400": { $ref: "../components/responses.yaml#/BadRequest" }
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "404": { $ref: "../components/responses.yaml#/NotFound" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+deliveryZone:
+  parameters:
+    - name: outletId
+      in: path
+      required: true
+      schema: { $ref: "../components/schemas/_common.yaml#/Uuid" }
+  get:
+    operationId: getDeliveryZone
+    tags: [Seller Fulfillment]
+    summary: Ambil zona/tarif antar lokal outlet
+    responses:
+      "200":
+        description: Zona antar lokal.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/seller.yaml#/DeliveryZone"
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "404": { $ref: "../components/responses.yaml#/NotFound" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+  put:
+    operationId: setDeliveryZone
+    tags: [Seller Fulfillment]
+    summary: Setel zona/tarif antar lokal
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas/seller.yaml#/DeliveryZoneRequest"
+    responses:
+      "200":
+        description: Zona disimpan.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/seller.yaml#/DeliveryZone"
+      "400": { $ref: "../components/responses.yaml#/BadRequest" }
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "404": { $ref: "../components/responses.yaml#/NotFound" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }

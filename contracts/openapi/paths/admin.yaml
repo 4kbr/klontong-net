@@ -1,0 +1,601 @@
+# /api/v1/admin/* — panel marketplace. bearerAuth (global) + peran `admin`.
+
+sellers:
+  get:
+    operationId: adminListSellers
+    tags: [Admin]
+    summary: Daftar toko untuk ditinjau
+    parameters:
+      - $ref: "../components/parameters.yaml#/LimitParam"
+      - $ref: "../components/parameters.yaml#/CursorParam"
+      - name: status
+        in: query
+        schema: { $ref: "../components/schemas/_common.yaml#/SellerStatus" }
+    responses:
+      "200":
+        description: Daftar toko (paginasi keyset).
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data, meta]
+              properties:
+                data:
+                  type: array
+                  items:
+                    $ref: "../components/schemas/admin.yaml#/AdminSellerRow"
+                meta:
+                  $ref: "../components/schemas/_common.yaml#/Meta"
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+sellerApprove:
+  parameters:
+    - name: sellerId
+      in: path
+      required: true
+      schema: { $ref: "../components/schemas/_common.yaml#/Uuid" }
+  post:
+    operationId: adminApproveSeller
+    tags: [Admin]
+    summary: Setujui verifikasi toko
+    description: "`pending` -> `verified`. Menerbitkan event `seller.seller.verified`."
+    requestBody:
+      required: false
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas/admin.yaml#/SellerApproveRequest"
+    responses:
+      "200":
+        description: Toko disetujui.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/admin.yaml#/AdminSellerRow"
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "404": { $ref: "../components/responses.yaml#/NotFound" }
+      "409": { $ref: "../components/responses.yaml#/Conflict" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+sellerReject:
+  parameters:
+    - name: sellerId
+      in: path
+      required: true
+      schema: { $ref: "../components/schemas/_common.yaml#/Uuid" }
+  post:
+    operationId: adminRejectSeller
+    tags: [Admin]
+    summary: Tolak verifikasi toko
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas/admin.yaml#/SellerRejectRequest"
+    responses:
+      "200":
+        description: Toko ditolak.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/admin.yaml#/AdminSellerRow"
+      "400": { $ref: "../components/responses.yaml#/BadRequest" }
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "404": { $ref: "../components/responses.yaml#/NotFound" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+sellerSuspend:
+  parameters:
+    - name: sellerId
+      in: path
+      required: true
+      schema: { $ref: "../components/schemas/_common.yaml#/Uuid" }
+  post:
+    operationId: adminSuspendSeller
+    tags: [Admin]
+    summary: Suspend toko
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas/admin.yaml#/SellerSuspendRequest"
+    responses:
+      "200":
+        description: Toko disuspend.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/admin.yaml#/AdminSellerRow"
+      "400": { $ref: "../components/responses.yaml#/BadRequest" }
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "404": { $ref: "../components/responses.yaml#/NotFound" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+categories:
+  get:
+    operationId: adminListCategories
+    tags: [Admin]
+    summary: Daftar kategori
+    responses:
+      "200":
+        description: Daftar kategori.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  type: array
+                  items:
+                    $ref: "../components/schemas/admin.yaml#/AdminCategory"
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+  post:
+    operationId: adminCreateCategory
+    tags: [Admin]
+    summary: Buat kategori
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas/admin.yaml#/CategoryCreateRequest"
+    responses:
+      "201":
+        description: Kategori dibuat.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/admin.yaml#/AdminCategory"
+      "400": { $ref: "../components/responses.yaml#/BadRequest" }
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+  patch:
+    operationId: adminUpdateCategory
+    tags: [Admin]
+    summary: Perbarui kategori
+    description: >-
+      Catatan scaffold: route ini tanpa segmen `{id}` — id dikirim di body.
+      Diseragamkan jadi `PATCH /admin/categories/{categoryId}` saat implementasi.
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas/admin.yaml#/CategoryUpdateRequest"
+    responses:
+      "200":
+        description: Kategori diperbarui.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/admin.yaml#/AdminCategory"
+      "400": { $ref: "../components/responses.yaml#/BadRequest" }
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "404": { $ref: "../components/responses.yaml#/NotFound" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+vouchers:
+  get:
+    operationId: adminListVouchers
+    tags: [Admin]
+    summary: Daftar voucher marketplace
+    parameters:
+      - $ref: "../components/parameters.yaml#/LimitParam"
+      - $ref: "../components/parameters.yaml#/CursorParam"
+    responses:
+      "200":
+        description: Daftar voucher (paginasi keyset).
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data, meta]
+              properties:
+                data:
+                  type: array
+                  items:
+                    $ref: "../components/schemas/promotion.yaml#/VoucherOffer"
+                meta:
+                  $ref: "../components/schemas/_common.yaml#/Meta"
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+  post:
+    operationId: adminCreateVoucher
+    tags: [Admin]
+    summary: Buat voucher marketplace
+    description: "`owner_type` selalu `marketplace` (di-set server dari peran pembuat, bukan dari body)."
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas/admin.yaml#/AdminVoucherCreateRequest"
+    responses:
+      "201":
+        description: Voucher dibuat.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/promotion.yaml#/VoucherOffer"
+      "400": { $ref: "../components/responses.yaml#/BadRequest" }
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "409": { $ref: "../components/responses.yaml#/Conflict" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+orders:
+  get:
+    operationId: adminListOrders
+    tags: [Admin]
+    summary: Daftar semua pesanan
+    parameters:
+      - $ref: "../components/parameters.yaml#/LimitParam"
+      - $ref: "../components/parameters.yaml#/CursorParam"
+      - name: status
+        in: query
+        schema: { $ref: "../components/schemas/_common.yaml#/OrderStatus" }
+    responses:
+      "200":
+        description: Daftar pesanan (paginasi keyset).
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data, meta]
+              properties:
+                data:
+                  type: array
+                  items:
+                    $ref: "../components/schemas/admin.yaml#/AdminOrderRow"
+                meta:
+                  $ref: "../components/schemas/_common.yaml#/Meta"
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+orderCancel:
+  parameters:
+    - name: orderId
+      in: path
+      required: true
+      schema: { type: string }
+  post:
+    operationId: adminCancelOrder
+    tags: [Admin]
+    summary: Batalkan pesanan (admin)
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas/order.yaml#/CancelOrderRequest"
+    responses:
+      "200":
+        description: Pesanan dibatalkan.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/order.yaml#/Order"
+      "400": { $ref: "../components/responses.yaml#/BadRequest" }
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "404": { $ref: "../components/responses.yaml#/NotFound" }
+      "409": { $ref: "../components/responses.yaml#/Conflict" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+payments:
+  get:
+    operationId: adminListPayments
+    tags: [Admin]
+    summary: Daftar pembayaran
+    parameters:
+      - $ref: "../components/parameters.yaml#/LimitParam"
+      - $ref: "../components/parameters.yaml#/CursorParam"
+      - name: status
+        in: query
+        schema: { $ref: "../components/schemas/_common.yaml#/PaymentStatus" }
+    responses:
+      "200":
+        description: Daftar pembayaran (paginasi keyset).
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data, meta]
+              properties:
+                data:
+                  type: array
+                  items:
+                    $ref: "../components/schemas/admin.yaml#/AdminPaymentRow"
+                meta:
+                  $ref: "../components/schemas/_common.yaml#/Meta"
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+paymentReconcile:
+  parameters:
+    - name: paymentId
+      in: path
+      required: true
+      schema: { $ref: "../components/schemas/_common.yaml#/Uuid" }
+  post:
+    operationId: adminReconcilePayment
+    tags: [Admin]
+    summary: Rekonsiliasi manual satu pembayaran
+    description: Memanggil Inquiry ke gateway untuk pembayaran yang menggantung.
+    requestBody:
+      required: false
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas/admin.yaml#/PaymentReconcileRequest"
+    responses:
+      "200":
+        description: Status pembayaran diselaraskan dengan gateway.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/admin.yaml#/AdminPaymentRow"
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "404": { $ref: "../components/responses.yaml#/NotFound" }
+      "502": { $ref: "../components/responses.yaml#/BadGateway" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+refunds:
+  post:
+    operationId: adminCreateRefund
+    tags: [Admin]
+    summary: Buat refund
+    description: Refund menunjuk satu suborder. Σ refund tidak boleh melebihi pembayaran.
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas/admin.yaml#/AdminRefundRequest"
+    responses:
+      "201":
+        description: Refund diajukan.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/admin.yaml#/AdminRefund"
+      "400": { $ref: "../components/responses.yaml#/BadRequest" }
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "404": { $ref: "../components/responses.yaml#/NotFound" }
+      "409":
+        description: "`refund_exceeds_payment`."
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/_common.yaml#/ErrorEnvelope"
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+settlements:
+  get:
+    operationId: adminListSettlements
+    tags: [Admin]
+    summary: Ringkasan settlement (saldo akun buku besar)
+    responses:
+      "200":
+        description: Daftar ringkasan akun.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  type: array
+                  items:
+                    $ref: "../components/schemas/settlement.yaml#/LedgerAccountSummary"
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+payouts:
+  get:
+    operationId: adminListPayouts
+    tags: [Admin]
+    summary: Daftar semua pencairan
+    parameters:
+      - $ref: "../components/parameters.yaml#/LimitParam"
+      - $ref: "../components/parameters.yaml#/CursorParam"
+      - name: status
+        in: query
+        schema: { $ref: "../components/schemas/_common.yaml#/PayoutStatus" }
+    responses:
+      "200":
+        description: Daftar pencairan (paginasi keyset).
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data, meta]
+              properties:
+                data:
+                  type: array
+                  items:
+                    $ref: "../components/schemas/settlement.yaml#/Payout"
+                meta:
+                  $ref: "../components/schemas/_common.yaml#/Meta"
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+payoutRetry:
+  parameters:
+    - name: payoutId
+      in: path
+      required: true
+      schema: { $ref: "../components/schemas/_common.yaml#/Uuid" }
+  post:
+    operationId: adminRetryPayout
+    tags: [Admin]
+    summary: Coba ulang pencairan yang gagal
+    responses:
+      "200":
+        description: Pencairan diproses ulang.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/settlement.yaml#/Payout"
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "404": { $ref: "../components/responses.yaml#/NotFound" }
+      "409": { $ref: "../components/responses.yaml#/Conflict" }
+      "502": { $ref: "../components/responses.yaml#/BadGateway" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+reconciliationReport:
+  get:
+    operationId: adminReconciliationReport
+    tags: [Admin]
+    summary: Laporan rekonsiliasi harian
+    description: "`difference` harus nol."
+    parameters:
+      - name: date
+        in: query
+        required: false
+        schema: { type: string, format: date }
+    responses:
+      "200":
+        description: Laporan rekonsiliasi.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/settlement.yaml#/ReconciliationReport"
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+audit:
+  get:
+    operationId: adminListAuditEntries
+    tags: [Admin]
+    summary: Log audit
+    parameters:
+      - $ref: "../components/parameters.yaml#/LimitParam"
+      - $ref: "../components/parameters.yaml#/CursorParam"
+      - name: actor_type
+        in: query
+        schema: { $ref: "../components/schemas/_common.yaml#/AuditActorType" }
+      - name: action
+        in: query
+        schema: { type: string }
+    responses:
+      "200":
+        description: Daftar entri audit (paginasi keyset).
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data, meta]
+              properties:
+                data:
+                  type: array
+                  items:
+                    $ref: "../components/schemas/admin.yaml#/AuditEntry"
+                meta:
+                  $ref: "../components/schemas/_common.yaml#/Meta"
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+auditByTarget:
+  parameters:
+    - name: targetType
+      in: path
+      required: true
+      schema: { type: string }
+      example: suborder
+    - name: targetId
+      in: path
+      required: true
+      schema: { $ref: "../components/schemas/_common.yaml#/Uuid" }
+  get:
+    operationId: adminListAuditEntriesForTarget
+    tags: [Admin]
+    summary: Entri audit untuk satu objek
+    parameters:
+      - $ref: "../components/parameters.yaml#/LimitParam"
+      - $ref: "../components/parameters.yaml#/CursorParam"
+    responses:
+      "200":
+        description: Daftar entri audit untuk objek tsb (paginasi keyset).
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data, meta]
+              properties:
+                data:
+                  type: array
+                  items:
+                    $ref: "../components/schemas/admin.yaml#/AuditEntry"
+                meta:
+                  $ref: "../components/schemas/_common.yaml#/Meta"
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "404": { $ref: "../components/responses.yaml#/NotFound" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }

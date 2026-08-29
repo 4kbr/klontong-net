@@ -4,7 +4,7 @@ Sumber kebenaran **bentuk API** untuk backend (`apps/backend`) dan frontend
 (`apps/frontend`). Ditulis **contract-first**: kontrak lebih dulu, implementasi
 menyusul. Frontend tidak perlu menunggu backend — pakai mock server dari kontrak ini.
 
-- Spesifikasi: **OpenAPI 3.1**, multi-file, di-`$ref`, dibundel jadi satu file.
+- Spesifikasi: **OpenAPI 3.0.3**, multi-file, di-`$ref`, dibundel jadi satu file.
 - Envelope, error code, paginasi, enum status, dan format uang ditetapkan di
   [`openapi/components/schemas/_common.yaml`](openapi/components/schemas/_common.yaml).
 - Konvensi diturunkan dari `apps/backend/internal/platform/httpx`, `.../errs`,
@@ -14,14 +14,17 @@ menyusul. Frontend tidak perlu menunggu backend — pakai mock server dari kontr
 
 | Milestone | Cakupan | Status |
 |---|---|---|
-| **M1** | Seluruh `/api/v1` buyer: auth, katalog, cart, checkout, order, payment status, review, notification | dikerjakan |
-| **M2** | `/api/v1/seller/*`, `/api/v1/admin/*`, `/webhook/*` | menyusul |
+| **M1** | Seluruh `/api/v1` buyer: auth, katalog, cart, checkout, order, payment status, review, notification | selesai |
+| **M2** | `/api/v1/seller/*`, `/api/v1/admin/*`, `/webhook/*` | selesai |
+
+Kontrak sekarang mencakup **seluruh API**. `pnpm run lint` + `pnpm run bundle` hijau,
+Prism mock terbukti jalan.
 
 ## Perintah
 
 ```bash
 cd contracts
-make install     # atau: npm install
+make install     # atau: pnpm install
 make lint        # Spectral — 0 error sebelum dianggap valid
 make bundle      # -> dist/openapi.yaml (dan dist/openapi.json)
 make mock        # Prism mock server di http://localhost:4010
@@ -31,8 +34,8 @@ make preview     # dokumentasi Redoc di browser
 Mock dengan contoh statis (default) atau acak:
 
 ```bash
-npm run mock            # pakai `example`/`examples` dari kontrak
-npm run mock:dynamic    # generate acak dari schema
+pnpm run mock            # pakai `example`/`examples` dari kontrak
+pnpm run mock:dynamic    # generate acak dari schema
 ```
 
 ## Cara frontend memakai

@@ -1,0 +1,143 @@
+# Schema modul settlement — saldo, pendapatan, pencairan (sisi penjual) + laporan
+# rekonsiliasi (sisi admin). Buku besar double-entry: tidak ada kolom saldo yang
+# di-UPDATE; saldo adalah penjumlahan entri.
+
+SellerBalance:
+  type: object
+  required: [pending, available]
+  properties:
+    pending:
+      allOf:
+        - $ref: "./_common.yaml#/Money"
+      description: Dana dari suborder yang sudah dibayar tapi belum matang (masih dalam masa sengketa).
+    available:
+      allOf:
+        - $ref: "./_common.yaml#/Money"
+      description: Dana matang yang bisa dicairkan.
+    next_maturity_at:
+      $ref: "./_common.yaml#/TimestampNullable"
+      description: Kapan sebagian dana pending berikutnya matang.
+    currency:
+      type: string
+      enum: [IDR]
+
+Earning:
+  type: object
+  required: [id, suborder_id, gross_amount, commission_amount, net_amount, status]
+  properties:
+    id:
+      $ref: "./_common.yaml#/Uuid"
+    suborder_id:
+      $ref: "./_common.yaml#/Uuid"
+    suborder_number:
+      $ref: "./_common.yaml#/SuborderNumber"
+    gross_amount:
+      allOf:
+        - $ref: "./_common.yaml#/Money"
+      description: Nilai barang setelah diskon (dasar komisi).
+    commission_amount:
+      allOf:
+        - $ref: "./_common.yaml#/Money"
+      description: Komisi marketplace, dibulatkan ke bawah.
+    net_amount:
+      $ref: "./_common.yaml#/Money"
+    status:
+      $ref: "./_common.yaml#/EarningStatus"
+    matures_at:
+      $ref: "./_common.yaml#/TimestampNullable"
+    created_at:
+      $ref: "./_common.yaml#/Timestamp"
+
+PayoutItem:
+  type: object
+  required: [suborder_id, amount]
+  properties:
+    suborder_id:
+      $ref: "./_common.yaml#/Uuid"
+    amount:
+      $ref: "./_common.yaml#/Money"
+
+Payout:
+  type: object
+  required: [id, amount, status, requested_at]
+  properties:
+    id:
+      $ref: "./_common.yaml#/Uuid"
+    amount:
+      $ref: "./_common.yaml#/Money"
+    status:
+      $ref: "./_common.yaml#/PayoutStatus"
+    bank_code:
+      type: string
+    account_number_masked:
+      type: string
+      example: "******7890"
+    account_name:
+      type: string
+    provider_reference:
+      type: string
+      nullable: true
+    failed_reason:
+      type: string
+      nullable: true
+    items:
+      type: array
+      items:
+        $ref: "#/PayoutItem"
+    requested_at:
+      $ref: "./_common.yaml#/Timestamp"
+    processed_at:
+      $ref: "./_common.yaml#/TimestampNullable"
+
+PayoutRequest:
+  type: object
+  description: >-
+    Meminta pencairan. Server memeriksa rekening tervalidasi, saldo available
+    cukup (dari ledger), tidak ada payout berjalan, dan di atas ambang minimum.
+    Kunci idempotensi dibuat sekali di sini. Header `Idempotency-Key` wajib.
+  required: [amount]
+  properties:
+    amount:
+      $ref: "./_common.yaml#/Money"
+  additionalProperties: false
+
+ReconciliationReport:
+  type: object
+  description: >-
+    Laporan rekonsiliasi harian marketplace (admin). `difference` HARUS nol; bila
+    tidak, ada jurnal tidak seimbang atau pergerakan uang tak tercatat.
+  required: [date, payments_in, seller_earnings, commission, payouts, difference]
+  properties:
+    date:
+      type: string
+      format: date
+    payments_in:
+      $ref: "./_common.yaml#/Money"
+    seller_earnings:
+      $ref: "./_common.yaml#/Money"
+    commission:
+      $ref: "./_common.yaml#/Money"
+    refunds:
+      $ref: "./_common.yaml#/Money"
+    payouts:
+      $ref: "./_common.yaml#/Money"
+    cod_receivable:
+      $ref: "./_common.yaml#/Money"
+    difference:
+      $ref: "./_common.yaml#/MoneySigned"
+
+LedgerAccountSummary:
+  type: object
+  description: Ringkasan saldo satu akun buku besar (dihitung dari entri).
+  required: [owner_type, kind, balance]
+  properties:
+    owner_type:
+      type: string
+      enum: [seller, marketplace, buyer, gateway, courier]
+    owner_id:
+      $ref: "./_common.yaml#/UuidNullable"
+    kind:
+      type: string
+      enum: [pending, available, payable, revenue, clearing]
+    balance:
+      $ref: "./_common.yaml#/MoneySigned"

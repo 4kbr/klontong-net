@@ -1,0 +1,69 @@
+# /api/v1/seller/reviews* — ulasan pada produk toko + balasan.
+
+collection:
+  get:
+    operationId: listSellerReviews
+    tags: [Seller Reviews]
+    summary: Ulasan pada produk toko
+    parameters:
+      - $ref: "../components/parameters.yaml#/LimitParam"
+      - $ref: "../components/parameters.yaml#/CursorParam"
+      - name: rating
+        in: query
+        schema: { type: integer, minimum: 1, maximum: 5 }
+      - name: unanswered
+        in: query
+        schema: { type: boolean }
+    responses:
+      "200":
+        description: Daftar ulasan (paginasi keyset).
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data, meta]
+              properties:
+                data:
+                  type: array
+                  items:
+                    $ref: "../components/schemas/seller.yaml#/SellerReview"
+                meta:
+                  $ref: "../components/schemas/_common.yaml#/Meta"
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+reply:
+  parameters:
+    - name: reviewId
+      in: path
+      required: true
+      schema: { $ref: "../components/schemas/_common.yaml#/Uuid" }
+  post:
+    operationId: replyToReview
+    tags: [Seller Reviews]
+    summary: Balas ulasan
+    description: Satu balasan per ulasan, hanya oleh penjual pemilik produk.
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas/seller.yaml#/ReviewReplyRequest"
+    responses:
+      "200":
+        description: Balasan disimpan.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/seller.yaml#/SellerReview"
+      "400": { $ref: "../components/responses.yaml#/BadRequest" }
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "404": { $ref: "../components/responses.yaml#/NotFound" }
+      "409": { $ref: "../components/responses.yaml#/Conflict" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }

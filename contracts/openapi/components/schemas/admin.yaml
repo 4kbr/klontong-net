@@ -1,0 +1,267 @@
+# Schema area admin marketplace (/api/v1/admin/*). Butuh peran `admin`.
+
+AdminSellerRow:
+  type: object
+  required: [id, slug, name, status, created_at]
+  properties:
+    id:
+      $ref: "./_common.yaml#/Uuid"
+    slug:
+      type: string
+    name:
+      type: string
+    owner_user_id:
+      $ref: "./_common.yaml#/Uuid"
+    status:
+      $ref: "./_common.yaml#/SellerStatus"
+    commission_bps:
+      $ref: "./_common.yaml#/BasisPointsNullable"
+    document_count:
+      type: integer
+    pending_document_count:
+      type: integer
+    created_at:
+      $ref: "./_common.yaml#/Timestamp"
+    verified_at:
+      $ref: "./_common.yaml#/TimestampNullable"
+
+SellerApproveRequest:
+  type: object
+  description: Menyetujui verifikasi toko (pending → verified). Body opsional.
+  properties:
+    commission_bps:
+      $ref: "./_common.yaml#/BasisPointsNullable"
+      description: Bila diisi, menetapkan komisi khusus untuk toko ini.
+  additionalProperties: false
+
+SellerRejectRequest:
+  type: object
+  required: [reason]
+  properties:
+    reason:
+      type: string
+      example: Dokumen KTP buram, mohon unggah ulang.
+  additionalProperties: false
+
+SellerSuspendRequest:
+  type: object
+  required: [reason]
+  properties:
+    reason:
+      type: string
+  additionalProperties: false
+
+AdminCategory:
+  allOf:
+    - $ref: "./catalog.yaml#/Category"
+    - type: object
+      properties:
+        path:
+          type: string
+          description: Materialized path / ltree.
+        product_count:
+          type: integer
+
+CategoryCreateRequest:
+  type: object
+  required: [name]
+  properties:
+    parent_id:
+      $ref: "./_common.yaml#/UuidNullable"
+    name:
+      type: string
+    slug:
+      type: string
+    position:
+      type: integer
+  additionalProperties: false
+
+CategoryUpdateRequest:
+  type: object
+  description: >-
+    Catatan scaffold: route `PATCH /api/v1/admin/categories` tidak punya segmen
+    `{id}` — id dikirim di body. Diseragamkan (jadi `/{categoryId}`) saat
+    implementasi.
+  required: [id]
+  properties:
+    id:
+      $ref: "./_common.yaml#/Uuid"
+    parent_id:
+      $ref: "./_common.yaml#/UuidNullable"
+    name:
+      type: string
+    slug:
+      type: string
+    position:
+      type: integer
+    is_active:
+      type: boolean
+  additionalProperties: false
+
+AdminVoucherCreateRequest:
+  type: object
+  description: >-
+    Membuat voucher marketplace. `owner_type` selalu `marketplace` untuk endpoint
+    ini (di-set server dari peran pembuat, tidak dari body).
+  required: [code, kind, applies_to, starts_at, ends_at]
+  properties:
+    code:
+      type: string
+    title:
+      type: string
+    kind:
+      $ref: "./_common.yaml#/VoucherKind"
+    applies_to:
+      $ref: "./_common.yaml#/VoucherAppliesTo"
+    value_bps:
+      $ref: "./_common.yaml#/BasisPointsNullable"
+    value_amount:
+      $ref: "./_common.yaml#/MoneyNullable"
+    max_discount_amount:
+      $ref: "./_common.yaml#/MoneyNullable"
+    min_order_amount:
+      $ref: "./_common.yaml#/MoneyNullable"
+    quota:
+      type: integer
+    quota_per_user:
+      type: integer
+    starts_at:
+      $ref: "./_common.yaml#/Timestamp"
+    ends_at:
+      $ref: "./_common.yaml#/Timestamp"
+  additionalProperties: false
+
+AdminRefundRequest:
+  type: object
+  description: >-
+    Refund menunjuk SATU suborder (bukan hanya order) — satu penjual ditolak,
+    yang lain jalan terus. Σ seluruh refund tidak boleh melebihi pembayaran.
+  required: [suborder_id, amount, reason]
+  properties:
+    suborder_id:
+      $ref: "./_common.yaml#/Uuid"
+    amount:
+      $ref: "./_common.yaml#/Money"
+    reason:
+      type: string
+  additionalProperties: false
+
+AdminRefund:
+  type: object
+  required: [id, suborder_id, amount, status, requested_at]
+  properties:
+    id:
+      $ref: "./_common.yaml#/Uuid"
+    payment_id:
+      $ref: "./_common.yaml#/Uuid"
+    order_id:
+      $ref: "./_common.yaml#/Uuid"
+    suborder_id:
+      $ref: "./_common.yaml#/Uuid"
+    amount:
+      $ref: "./_common.yaml#/Money"
+    reason:
+      type: string
+    status:
+      $ref: "./_common.yaml#/RefundStatus"
+    provider_reference:
+      type: string
+      nullable: true
+    requested_at:
+      $ref: "./_common.yaml#/Timestamp"
+    processed_at:
+      $ref: "./_common.yaml#/TimestampNullable"
+
+AdminOrderRow:
+  type: object
+  required: [id, number, status, grand_total, buyer_user_id, placed_at]
+  properties:
+    id:
+      $ref: "./_common.yaml#/Uuid"
+    number:
+      $ref: "./_common.yaml#/OrderNumber"
+    status:
+      $ref: "./_common.yaml#/OrderStatus"
+    grand_total:
+      $ref: "./_common.yaml#/Money"
+    payment_method:
+      $ref: "./_common.yaml#/PaymentMethod"
+    buyer_user_id:
+      $ref: "./_common.yaml#/Uuid"
+    suborder_count:
+      type: integer
+    placed_at:
+      $ref: "./_common.yaml#/Timestamp"
+
+AdminPaymentRow:
+  type: object
+  required: [id, order_id, method, status, amount, created_at]
+  properties:
+    id:
+      $ref: "./_common.yaml#/Uuid"
+    order_id:
+      $ref: "./_common.yaml#/Uuid"
+    order_number:
+      $ref: "./_common.yaml#/OrderNumber"
+    method:
+      $ref: "./_common.yaml#/PaymentMethod"
+    provider:
+      type: string
+      nullable: true
+    provider_reference:
+      type: string
+      nullable: true
+    status:
+      $ref: "./_common.yaml#/PaymentStatus"
+    amount:
+      $ref: "./_common.yaml#/Money"
+    created_at:
+      $ref: "./_common.yaml#/Timestamp"
+    paid_at:
+      $ref: "./_common.yaml#/TimestampNullable"
+
+PaymentReconcileRequest:
+  type: object
+  description: Memaksa cek status ke gateway (Inquiry) untuk pembayaran yang menggantung.
+  properties:
+    note:
+      type: string
+  additionalProperties: false
+
+AuditEntry:
+  type: object
+  required: [id, actor_type, action, target_type, target_id, created_at]
+  properties:
+    id:
+      $ref: "./_common.yaml#/Uuid"
+    actor_type:
+      $ref: "./_common.yaml#/AuditActorType"
+    actor_id:
+      $ref: "./_common.yaml#/UuidNullable"
+    actor_label:
+      type: string
+      nullable: true
+    action:
+      type: string
+      example: suborder.rejected
+    target_type:
+      type: string
+      example: suborder
+    target_id:
+      $ref: "./_common.yaml#/Uuid"
+    before:
+      type: object
+      nullable: true
+      additionalProperties: true
+    after:
+      type: object
+      nullable: true
+      additionalProperties: true
+    ip:
+      type: string
+      nullable: true
+    user_agent:
+      type: string
+      nullable: true
+    created_at:
+      $ref: "./_common.yaml#/Timestamp"

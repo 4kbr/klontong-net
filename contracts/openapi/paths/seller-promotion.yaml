@@ -1,0 +1,99 @@
+# /api/v1/seller/vouchers* — voucher milik toko. owner_type selalu `seller` (di-set server).
+
+collection:
+  get:
+    operationId: listSellerVouchers
+    tags: [Seller Promotion]
+    summary: Daftar voucher toko
+    parameters:
+      - $ref: "../components/parameters.yaml#/LimitParam"
+      - $ref: "../components/parameters.yaml#/CursorParam"
+    responses:
+      "200":
+        description: Daftar voucher (paginasi keyset).
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data, meta]
+              properties:
+                data:
+                  type: array
+                  items:
+                    $ref: "../components/schemas/seller.yaml#/SellerVoucher"
+                meta:
+                  $ref: "../components/schemas/_common.yaml#/Meta"
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+  post:
+    operationId: createSellerVoucher
+    tags: [Seller Promotion]
+    summary: Buat voucher toko
+    description: Voucher `percentage` wajib punya `max_discount_amount`.
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas/seller.yaml#/SellerVoucherCreateRequest"
+    responses:
+      "201":
+        description: Voucher dibuat.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/seller.yaml#/SellerVoucher"
+      "400": { $ref: "../components/responses.yaml#/BadRequest" }
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "409": { $ref: "../components/responses.yaml#/Conflict" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+item:
+  parameters:
+    - name: voucherId
+      in: path
+      required: true
+      schema: { $ref: "../components/schemas/_common.yaml#/Uuid" }
+  patch:
+    operationId: updateSellerVoucher
+    tags: [Seller Promotion]
+    summary: Perbarui voucher toko
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas/seller.yaml#/SellerVoucherUpdateRequest"
+    responses:
+      "200":
+        description: Voucher diperbarui.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/seller.yaml#/SellerVoucher"
+      "400": { $ref: "../components/responses.yaml#/BadRequest" }
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "404": { $ref: "../components/responses.yaml#/NotFound" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+  delete:
+    operationId: deactivateSellerVoucher
+    tags: [Seller Promotion]
+    summary: Nonaktifkan voucher toko
+    responses:
+      "204":
+        description: Voucher dinonaktifkan.
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "404": { $ref: "../components/responses.yaml#/NotFound" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
