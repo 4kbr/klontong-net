@@ -1,0 +1,7 @@
+packages:
+  - storefront
+  - dashboard
+  - packages/*
+
+onlyBuiltDependencies:
+  - esbuild

@@ -1,0 +1,131 @@
+/*
+ * Tema bersama Klontong Net (Tailwind CSS v4, CSS-first).
+ * Diimpor kedua app lewat `@import "@klontong/ui/styles.css"`.
+ * Warna utama: emas/amber (kuning tua).
+ */
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+/* Pindai kelas di komponen paket ini (tidak auto-terdeteksi karena di node_modules). */
+@source "../components";
+
+@custom-variant dark (&:is(.dark *));
+
+/* Skala warna utama — emas/amber. Tersedia sebagai bg-primary-600, text-primary-700, dst. */
+@theme {
+  --color-primary-50: #fdf9ec;
+  --color-primary-100: #f9efc9;
+  --color-primary-200: #f3dd8e;
+  --color-primary-300: #ecc653;
+  --color-primary-400: #e6b02c;
+  --color-primary-500: #d4941a;
+  --color-primary-600: #b8860b;
+  --color-primary-700: #93670d;
+  --color-primary-800: #7a5312;
+  --color-primary-900: #684614;
+  --color-primary-950: #3d2708;
+}
+
+/* Token semantik gaya shadcn — mode terang. */
+:root {
+  --radius: 0.625rem;
+
+  --background: #ffffff;
+  --foreground: #1c1917;
+  --card: #ffffff;
+  --card-foreground: #1c1917;
+  --popover: #ffffff;
+  --popover-foreground: #1c1917;
+
+  --primary: #b8860b;
+  --primary-foreground: #ffffff;
+  --secondary: #f5f5f4;
+  --secondary-foreground: #292524;
+  --muted: #f5f5f4;
+  --muted-foreground: #78716c;
+  --accent: #fdf1d6;
+  --accent-foreground: #3d2708;
+
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+
+  --border: #e7e5e4;
+  --input: #e7e5e4;
+  --ring: #b8860b;
+}
+
+/* Mode gelap. */
+.dark {
+  --background: #1c1917;
+  --foreground: #fafaf9;
+  --card: #292524;
+  --card-foreground: #fafaf9;
+  --popover: #292524;
+  --popover-foreground: #fafaf9;
+
+  --primary: #e3a72f;
+  --primary-foreground: #1c1917;
+  --secondary: #292524;
+  --secondary-foreground: #fafaf9;
+  --muted: #292524;
+  --muted-foreground: #a8a29e;
+  --accent: #44341a;
+  --accent-foreground: #fdf1d6;
+
+  --destructive: #ef4444;
+  --destructive-foreground: #fafaf9;
+
+  --border: #44403c;
+  --input: #44403c;
+  --ring: #e3a72f;
+}
+
+/* Petakan token ke utilitas: bg-background, text-foreground, border-border, dst. */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+    outline-color: color-mix(in oklch, var(--color-ring) 50%, transparent);
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family:
+      ui-sans-serif,
+      system-ui,
+      -apple-system,
+      'Segoe UI',
+      Roboto,
+      'Helvetica Neue',
+      Arial,
+      sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+}
