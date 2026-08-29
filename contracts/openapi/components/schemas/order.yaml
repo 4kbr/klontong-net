@@ -1,0 +1,388 @@
+# Schema modul order — checkout dua tahap + entity Order/Suborder/Item.
+# ADR-004: request checkout TIDAK memuat field harga/total. Klien mengirim pilihan.
+# ADR-002: Order induk + banyak Suborder; status induk diturunkan dari anak.
+# ADR-010: item menyimpan salinan snapshot.
+
+# ---------------------------------------------------------------------------
+# Checkout — tahap 1: preview
+# ---------------------------------------------------------------------------
+CheckoutPreviewRequest:
+  type: object
+  description: >-
+    Menghitung ulang seluruh keranjang terhadap pilihan pembeli. Tidak menahan
+    stok. Boleh dipanggil berkali-kali.
+  required: [address_id]
+  properties:
+    address_id:
+      $ref: "./_common.yaml#/Uuid"
+    shipping_selections:
+      type: array
+      description: Pilihan opsi ongkir per penjual (quote_id dari /shipping/quote). Boleh sebagian.
+      items:
+        $ref: "#/ShippingSelection"
+    voucher_code:
+      type: string
+      nullable: true
+  additionalProperties: false
+
+ShippingSelection:
+  type: object
+  required: [seller_id, quote_id]
+  properties:
+    seller_id:
+      $ref: "./_common.yaml#/Uuid"
+    quote_id:
+      $ref: "./_common.yaml#/Uuid"
+
+CheckoutPreview:
+  type: object
+  required: [address, suborders, totals]
+  properties:
+    address:
+      $ref: "#/AddressSnapshot"
+    suborders:
+      type: array
+      items:
+        $ref: "#/SuborderPreview"
+    voucher:
+      allOf:
+        - $ref: "./promotion.yaml#/AppliedVoucher"
+      description: Dihilangkan bila tidak ada voucher yang diterapkan.
+    totals:
+      $ref: "#/OrderTotals"
+    issues:
+      type: array
+      description: Masalah non-fatal yang perlu ditampilkan (mis. quote kedaluwarsa, stok menipis).
+      items:
+        type: object
+        properties:
+          code:
+            type: string
+            example: quote_expired
+          seller_id:
+            $ref: "./_common.yaml#/Uuid"
+          message:
+            type: string
+
+SuborderPreview:
+  type: object
+  required: [seller, outlet_id, fulfillment_method, items, amounts]
+  properties:
+    seller:
+      $ref: "./catalog.yaml#/SellerRef"
+    outlet_id:
+      $ref: "./_common.yaml#/Uuid"
+    fulfillment_method:
+      $ref: "./_common.yaml#/FulfillmentMethod"
+    selected_quote_id:
+      $ref: "./_common.yaml#/UuidNullable"
+    items:
+      type: array
+      items:
+        $ref: "#/CheckoutLine"
+    amounts:
+      $ref: "#/SuborderAmounts"
+
+CheckoutLine:
+  type: object
+  required: [variant_id, product_name, variant_name, quantity, unit_price, line_total]
+  properties:
+    variant_id:
+      $ref: "./_common.yaml#/Uuid"
+    product_name:
+      type: string
+    variant_name:
+      type: string
+    unit_code:
+      $ref: "./_common.yaml#/UnitCode"
+    quantity:
+      $ref: "./_common.yaml#/Quantity"
+    unit_price:
+      $ref: "./_common.yaml#/Money"
+    discount_amount:
+      $ref: "./_common.yaml#/Money"
+    line_total:
+      $ref: "./_common.yaml#/Money"
+
+# ---------------------------------------------------------------------------
+# Checkout — tahap 2: place order
+# ---------------------------------------------------------------------------
+PlaceOrderRequest:
+  type: object
+  description: >-
+    Membuat pesanan. Server menghitung ulang semuanya dari nol dan hanya percaya
+    pilihan klien. `client_grand_total` semata pembanding — bila berbeda dari
+    hitungan server, response 409 `price_changed` dengan rincian per-baris.
+    Header `Idempotency-Key` WAJIB.
+  required: [address_id, shipping_selections, payment_method]
+  properties:
+    address_id:
+      $ref: "./_common.yaml#/Uuid"
+    shipping_selections:
+      type: array
+      minItems: 1
+      items:
+        $ref: "#/ShippingSelection"
+    voucher_code:
+      type: string
+      nullable: true
+    payment_method:
+      $ref: "./_common.yaml#/PaymentMethod"
+    payment_channel:
+      type: string
+      nullable: true
+      description: "Kanal spesifik untuk `gateway` (mis. va_bca, qris, gopay). Diabaikan untuk `cod`."
+      example: va_bca
+    client_grand_total:
+      $ref: "./_common.yaml#/MoneyNullable"
+      description: Total yang ditampilkan ke pembeli. Hanya untuk deteksi perubahan harga.
+  additionalProperties: false
+
+PlaceOrderResponse:
+  type: object
+  required: [order, payment]
+  properties:
+    order:
+      $ref: "#/Order"
+    payment:
+      $ref: "./payment.yaml#/PaymentInstruction"
+
+# ---------------------------------------------------------------------------
+# Entity
+# ---------------------------------------------------------------------------
+AddressSnapshot:
+  type: object
+  description: Salinan alamat pada saat pesanan dibuat (ADR-010). Tidak berubah bila alamat asli diedit.
+  required: [recipient_name, recipient_phone, line1, city, province, postal_code]
+  properties:
+    recipient_name:
+      type: string
+    recipient_phone:
+      type: string
+    line1:
+      type: string
+    line2:
+      type: string
+      nullable: true
+    city:
+      type: string
+    province:
+      type: string
+    postal_code:
+      type: string
+    coordinate:
+      $ref: "./_common.yaml#/Coordinate"
+    notes:
+      type: string
+      nullable: true
+
+OrderTotals:
+  type: object
+  required: [items_amount, discount_amount, shipping_amount, tax_amount, grand_total]
+  properties:
+    items_amount:
+      $ref: "./_common.yaml#/Money"
+    discount_amount:
+      $ref: "./_common.yaml#/Money"
+    shipping_amount:
+      $ref: "./_common.yaml#/Money"
+    tax_amount:
+      $ref: "./_common.yaml#/Money"
+    grand_total:
+      allOf:
+        - $ref: "./_common.yaml#/Money"
+      description: items - discount + shipping + tax. Sama dengan jumlah total seluruh suborder.
+
+SuborderAmounts:
+  type: object
+  required: [items_amount, discount_amount, shipping_amount, tax_amount, total_amount]
+  properties:
+    items_amount:
+      $ref: "./_common.yaml#/Money"
+    discount_amount:
+      $ref: "./_common.yaml#/Money"
+    shipping_amount:
+      $ref: "./_common.yaml#/Money"
+    tax_amount:
+      $ref: "./_common.yaml#/Money"
+    total_amount:
+      $ref: "./_common.yaml#/Money"
+
+OrderItem:
+  type: object
+  description: Baris pesanan. Semua field produk adalah salinan snapshot (ADR-010).
+  required:
+    - id
+    - variant_id
+    - product_name
+    - variant_name
+    - sku
+    - unit_code
+    - content_quantity
+    - quantity
+    - unit_price
+    - total_amount
+  properties:
+    id:
+      $ref: "./_common.yaml#/Uuid"
+    variant_id:
+      $ref: "./_common.yaml#/Uuid"
+    product_id:
+      $ref: "./_common.yaml#/Uuid"
+    product_name:
+      type: string
+    variant_name:
+      type: string
+    sku:
+      type: string
+    image_url:
+      type: string
+      format: uri
+      nullable: true
+    unit_code:
+      $ref: "./_common.yaml#/UnitCode"
+    content_quantity:
+      $ref: "./_common.yaml#/Quantity"
+    quantity:
+      $ref: "./_common.yaml#/Quantity"
+    unit_price:
+      $ref: "./_common.yaml#/Money"
+    discount_amount:
+      $ref: "./_common.yaml#/Money"
+    total_amount:
+      $ref: "./_common.yaml#/Money"
+    weight_gram:
+      type: integer
+
+Suborder:
+  type: object
+  required:
+    - id
+    - number
+    - seller
+    - outlet_id
+    - status
+    - fulfillment_method
+    - items
+    - amounts
+    - created_at
+  properties:
+    id:
+      $ref: "./_common.yaml#/Uuid"
+    number:
+      $ref: "./_common.yaml#/SuborderNumber"
+    seller:
+      $ref: "./catalog.yaml#/SellerRef"
+    outlet_id:
+      $ref: "./_common.yaml#/Uuid"
+    status:
+      $ref: "./_common.yaml#/SuborderStatus"
+    fulfillment_method:
+      $ref: "./_common.yaml#/FulfillmentMethod"
+    items:
+      type: array
+      items:
+        $ref: "#/OrderItem"
+    amounts:
+      $ref: "#/SuborderAmounts"
+    commission_bps:
+      allOf:
+        - $ref: "./_common.yaml#/BasisPoints"
+      description: Dibekukan saat pesanan dibuat.
+    shipment:
+      allOf:
+        - $ref: "./fulfillment.yaml#/ShipmentView"
+      description: Dihilangkan sebelum pengiriman dibuat (mis. suborder masih menunggu konfirmasi).
+    reject_reason:
+      type: string
+      nullable: true
+    cancel_reason:
+      type: string
+      nullable: true
+    confirmed_at:
+      $ref: "./_common.yaml#/TimestampNullable"
+    shipped_at:
+      $ref: "./_common.yaml#/TimestampNullable"
+    delivered_at:
+      $ref: "./_common.yaml#/TimestampNullable"
+    completed_at:
+      $ref: "./_common.yaml#/TimestampNullable"
+    created_at:
+      $ref: "./_common.yaml#/Timestamp"
+
+Order:
+  type: object
+  required:
+    - id
+    - number
+    - status
+    - shipping_address
+    - suborders
+    - totals
+    - payment_method
+    - placed_at
+  properties:
+    id:
+      $ref: "./_common.yaml#/Uuid"
+    number:
+      $ref: "./_common.yaml#/OrderNumber"
+    status:
+      $ref: "./_common.yaml#/OrderStatus"
+    shipping_address:
+      $ref: "#/AddressSnapshot"
+    suborders:
+      type: array
+      items:
+        $ref: "#/Suborder"
+    totals:
+      $ref: "#/OrderTotals"
+    payment_method:
+      $ref: "./_common.yaml#/PaymentMethod"
+    can_be_cancelled:
+      type: boolean
+      description: True selama belum ada suborder yang `shipped`.
+    placed_at:
+      $ref: "./_common.yaml#/Timestamp"
+    paid_at:
+      $ref: "./_common.yaml#/TimestampNullable"
+    completed_at:
+      $ref: "./_common.yaml#/TimestampNullable"
+    cancelled_at:
+      $ref: "./_common.yaml#/TimestampNullable"
+    expires_at:
+      $ref: "./_common.yaml#/TimestampNullable"
+      description: Batas waktu pembayaran untuk order `pending_payment`.
+    cancel_reason:
+      type: string
+      nullable: true
+
+OrderCard:
+  type: object
+  description: Ringkasan order untuk daftar.
+  required: [id, number, status, grand_total, suborder_count, placed_at]
+  properties:
+    id:
+      $ref: "./_common.yaml#/Uuid"
+    number:
+      $ref: "./_common.yaml#/OrderNumber"
+    status:
+      $ref: "./_common.yaml#/OrderStatus"
+    grand_total:
+      $ref: "./_common.yaml#/Money"
+    suborder_count:
+      type: integer
+    seller_names:
+      type: array
+      items:
+        type: string
+    placed_at:
+      $ref: "./_common.yaml#/Timestamp"
+
+CancelOrderRequest:
+  type: object
+  required: [reason]
+  properties:
+    reason:
+      type: string
+      example: Salah pesan
+  additionalProperties: false

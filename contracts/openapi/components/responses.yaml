@@ -1,0 +1,172 @@
+# Response error standar. Semua operasi merujuk ke sini untuk 4xx/5xx.
+# Peta kind->status: invalid=400, unauthorized=401, forbidden=403, not_found=404,
+# conflict=409, too_many_requests=429, upstream=502, lain=500 (apps/backend/internal/platform/httpx/error.go).
+
+BadRequest:
+  description: >-
+    Request tidak valid — content-type salah, JSON rusak, field tak dikenal, atau
+    gagal validasi bentuk. `error.fields` berisi pesan per-field bila relevan.
+    Juga dikembalikan bila `Idempotency-Key` wajib tapi tidak ada.
+  headers:
+    X-Request-ID:
+      $ref: "./headers.yaml#/XRequestId"
+  content:
+    application/json:
+      schema:
+        $ref: "./schemas/_common.yaml#/ErrorEnvelope"
+      examples:
+        validation:
+          value:
+            error:
+              code: invalid_input
+              message: Ada field yang tidak valid.
+              fields:
+                recipient_phone: format nomor telepon tidak valid
+        missingIdempotencyKey:
+          value:
+            error:
+              code: idempotency_key_required
+              message: Header Idempotency-Key wajib untuk endpoint ini.
+
+Unauthorized:
+  description: Token tidak ada, tidak valid, atau kedaluwarsa.
+  headers:
+    X-Request-ID:
+      $ref: "./headers.yaml#/XRequestId"
+  content:
+    application/json:
+      schema:
+        $ref: "./schemas/_common.yaml#/ErrorEnvelope"
+      examples:
+        expired:
+          value:
+            error:
+              code: token_expired
+              message: Sesi Anda berakhir. Silakan masuk lagi.
+        invalid:
+          value:
+            error:
+              code: token_invalid
+              message: Token tidak valid.
+
+Forbidden:
+  description: >-
+    Terautentikasi tapi tidak berhak — peran kurang, atau bukan pemilik sumber
+    daya (order, suborder, toko).
+  headers:
+    X-Request-ID:
+      $ref: "./headers.yaml#/XRequestId"
+  content:
+    application/json:
+      schema:
+        $ref: "./schemas/_common.yaml#/ErrorEnvelope"
+      example:
+        error:
+          code: forbidden
+          message: Anda tidak berhak mengakses sumber daya ini.
+
+NotFound:
+  description: Sumber daya tidak ditemukan.
+  headers:
+    X-Request-ID:
+      $ref: "./headers.yaml#/XRequestId"
+  content:
+    application/json:
+      schema:
+        $ref: "./schemas/_common.yaml#/ErrorEnvelope"
+      example:
+        error:
+          code: not_found
+          message: Data tidak ditemukan.
+
+Conflict:
+  description: >-
+    Bentrok dengan keadaan sekarang — pelanggaran keunikan, transisi status tidak
+    sah, kuota habis, request idempoten masih berjalan.
+  headers:
+    X-Request-ID:
+      $ref: "./headers.yaml#/XRequestId"
+  content:
+    application/json:
+      schema:
+        $ref: "./schemas/_common.yaml#/ErrorEnvelope"
+      examples:
+        emailTaken:
+          value:
+            error:
+              code: email_taken
+              message: Email sudah terdaftar.
+        invalidTransition:
+          value:
+            error:
+              code: invalid_transition
+              message: Status pesanan tidak bisa berpindah ke sana.
+        idempotentInFlight:
+          value:
+            error:
+              code: request_in_flight
+              message: Request dengan kunci idempotensi ini masih diproses.
+
+UnprocessableEntity:
+  description: >-
+    Body lolos validasi bentuk tapi melanggar aturan bisnis lapis-tipis. Backend
+    scaffold umumnya memakai 400 untuk ini; disediakan untuk operasi yang secara
+    eksplisit membedakannya.
+  headers:
+    X-Request-ID:
+      $ref: "./headers.yaml#/XRequestId"
+  content:
+    application/json:
+      schema:
+        $ref: "./schemas/_common.yaml#/ErrorEnvelope"
+      example:
+        error:
+          code: min_order_not_met
+          message: Kurang Rp15.000 lagi untuk memakai voucher ini.
+
+TooManyRequests:
+  description: Melebihi batas laju. Lihat header `Retry-After`.
+  headers:
+    X-Request-ID:
+      $ref: "./headers.yaml#/XRequestId"
+    Retry-After:
+      $ref: "./headers.yaml#/RetryAfter"
+  content:
+    application/json:
+      schema:
+        $ref: "./schemas/_common.yaml#/ErrorEnvelope"
+      example:
+        error:
+          code: too_many_requests
+          message: Terlalu banyak permintaan. Coba lagi sebentar.
+
+InternalServerError:
+  description: Kesalahan tak terduga. Body generik; detail ada di log server.
+  headers:
+    X-Request-ID:
+      $ref: "./headers.yaml#/XRequestId"
+  content:
+    application/json:
+      schema:
+        $ref: "./schemas/_common.yaml#/ErrorEnvelope"
+      example:
+        error:
+          code: internal_error
+          message: Terjadi kesalahan pada server.
+
+BadGateway:
+  description: >-
+    Kegagalan penyedia upstream (gateway pembayaran / agregator kurir).
+    `error.retryable` menandai apakah aman dicoba ulang.
+  headers:
+    X-Request-ID:
+      $ref: "./headers.yaml#/XRequestId"
+  content:
+    application/json:
+      schema:
+        $ref: "./schemas/_common.yaml#/ErrorEnvelope"
+      example:
+        error:
+          code: gateway_unavailable
+          message: Layanan pembayaran sedang tidak tersedia.
+          retryable: true

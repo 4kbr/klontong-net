@@ -1,0 +1,212 @@
+# Operasi /api/v1/auth/*. Semua publik kecuali logout.
+
+register:
+  post:
+    operationId: authRegister
+    tags: [Auth]
+    summary: Registrasi akun pembeli
+    description: >-
+      Membuat akun dengan peran `buyer`. Email dinormalisasi lowercase, telepon ke
+      E.164. Verifikasi email dikirim tapi tidak memblokir belanja.
+    security: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas/auth.yaml#/RegisterRequest"
+    responses:
+      "201":
+        description: Akun dibuat, sesi diterbitkan.
+        headers:
+          X-Request-ID: { $ref: "../components/headers.yaml#/XRequestId" }
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/auth.yaml#/AuthSession"
+      "400": { $ref: "../components/responses.yaml#/BadRequest" }
+      "409": { $ref: "../components/responses.yaml#/Conflict" }
+      "429": { $ref: "../components/responses.yaml#/TooManyRequests" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+login:
+  post:
+    operationId: authLogin
+    tags: [Auth]
+    summary: Masuk dengan email atau telepon
+    description: >-
+      Satu field `identifier` menerima email atau nomor telepon. Kegagalan apa pun
+      (email tidak ada / sandi salah) mengembalikan error identik `invalid_credential`.
+      Akun tersuspensi mengembalikan `user_suspended`.
+    security: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas/auth.yaml#/LoginRequest"
+    responses:
+      "200":
+        description: Berhasil masuk.
+        headers:
+          X-Request-ID: { $ref: "../components/headers.yaml#/XRequestId" }
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/auth.yaml#/AuthSession"
+      "400": { $ref: "../components/responses.yaml#/BadRequest" }
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "429": { $ref: "../components/responses.yaml#/TooManyRequests" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+refresh:
+  post:
+    operationId: authRefresh
+    tags: [Auth]
+    summary: Rotasi refresh token
+    description: >-
+      Menukar refresh token dengan pasangan access+refresh baru. Refresh token lama
+      dicabut. Pemakaian ulang token yang sudah dicabut mencabut seluruh sesi
+      pengguna.
+    security: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas/auth.yaml#/RefreshRequest"
+    responses:
+      "200":
+        description: Token baru diterbitkan.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/auth.yaml#/TokenPair"
+      "400": { $ref: "../components/responses.yaml#/BadRequest" }
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+logout:
+  post:
+    operationId: authLogout
+    tags: [Auth]
+    summary: Keluar (cabut sesi)
+    requestBody:
+      required: false
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas/auth.yaml#/LogoutRequest"
+    responses:
+      "204":
+        description: Sesi dicabut.
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+verifyEmail:
+  post:
+    operationId: authVerifyEmail
+    tags: [Auth]
+    summary: Verifikasi email dengan token
+    security: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas/auth.yaml#/VerifyEmailRequest"
+    responses:
+      "204":
+        description: Email terverifikasi.
+      "400": { $ref: "../components/responses.yaml#/BadRequest" }
+      "409": { $ref: "../components/responses.yaml#/Conflict" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+requestOtp:
+  post:
+    operationId: authRequestOtp
+    tags: [Auth]
+    summary: Kirim OTP ke nomor telepon
+    security: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas/auth.yaml#/RequestOtpRequest"
+    responses:
+      "202":
+        description: OTP dikirim bila nomor valid.
+      "400": { $ref: "../components/responses.yaml#/BadRequest" }
+      "429": { $ref: "../components/responses.yaml#/TooManyRequests" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+verifyOtp:
+  post:
+    operationId: authVerifyOtp
+    tags: [Auth]
+    summary: Verifikasi OTP telepon
+    security: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas/auth.yaml#/VerifyOtpRequest"
+    responses:
+      "204":
+        description: Telepon terverifikasi.
+      "400": { $ref: "../components/responses.yaml#/BadRequest" }
+      "409": { $ref: "../components/responses.yaml#/Conflict" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+forgotPassword:
+  post:
+    operationId: authForgotPassword
+    tags: [Auth]
+    summary: Mulai reset kata sandi
+    description: Selalu mengembalikan 202 apa pun keadaannya (tidak membocorkan keberadaan akun).
+    security: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas/auth.yaml#/ForgotPasswordRequest"
+    responses:
+      "202":
+        description: Bila akun ada, tautan/kode reset dikirim.
+      "400": { $ref: "../components/responses.yaml#/BadRequest" }
+      "429": { $ref: "../components/responses.yaml#/TooManyRequests" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+resetPassword:
+  post:
+    operationId: authResetPassword
+    tags: [Auth]
+    summary: Setel kata sandi baru dengan token
+    security: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas/auth.yaml#/ResetPasswordRequest"
+    responses:
+      "204":
+        description: Kata sandi diganti; seluruh sesi lama dicabut.
+      "400": { $ref: "../components/responses.yaml#/BadRequest" }
+      "409": { $ref: "../components/responses.yaml#/Conflict" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }

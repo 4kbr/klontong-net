@@ -1,0 +1,48 @@
+# Parameter yang dipakai berulang. Path id spesifik didefinisikan inline di file
+# paths agar deskripsinya kontekstual; di sini hanya yang benar-benar generik.
+
+LimitParam:
+  name: limit
+  in: query
+  required: false
+  description: Jumlah maksimum item per halaman.
+  schema:
+    type: integer
+    minimum: 1
+    maximum: 100
+    default: 20
+
+CursorParam:
+  name: cursor
+  in: query
+  required: false
+  description: >-
+    Kursor paginasi opaque (base64-JSON) dari `meta.next_cursor` response
+    sebelumnya. Kosong/absen berarti halaman pertama. Paginasi keyset, bukan
+    offset.
+  schema:
+    type: string
+
+IdempotencyKeyHeader:
+  name: Idempotency-Key
+  in: header
+  required: true
+  description: >-
+    Kunci idempotensi unik yang dibuat klien (mis. UUID v4). WAJIB untuk endpoint
+    yang menciptakan sesuatu bernilai uang. Request dengan kunci yang sudah dipakai
+    mengembalikan response tersimpan tanpa menjalankan ulang handler. Request
+    kedua dengan kunci sama saat yang pertama masih berjalan → 409.
+  schema:
+    type: string
+    minLength: 8
+    maxLength: 255
+
+SortParam:
+  name: sort
+  in: query
+  required: false
+  description: Urutan hasil.
+  schema:
+    type: string
+    enum: [newest, cheapest, best_selling, rating]
+    default: newest

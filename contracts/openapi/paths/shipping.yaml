@@ -1,0 +1,60 @@
+# Operasi ongkir & tampilan pengiriman untuk pembeli.
+
+quote:
+  post:
+    operationId: getShippingQuote
+    tags: [Shipping]
+    summary: Hitung opsi ongkir per suborder
+    description: >-
+      Menghitung opsi ongkir untuk keranjang aktif terhadap satu alamat, per
+      penjual. Kegagalan agregat kurir tidak menggagalkan seluruh quote — opsi
+      lain (pickup/local) tetap dikembalikan dengan `notice`. Setiap opsi punya
+      `quote_id` dan `expires_at` (~30 menit).
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas/fulfillment.yaml#/ShippingQuoteRequest"
+    responses:
+      "200":
+        description: Opsi ongkir per grup penjual.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/fulfillment.yaml#/ShippingQuoteResponse"
+      "400": { $ref: "../components/responses.yaml#/BadRequest" }
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "422": { $ref: "../components/responses.yaml#/UnprocessableEntity" }
+      "502": { $ref: "../components/responses.yaml#/BadGateway" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+suborderShipment:
+  parameters:
+    - name: suborderId
+      in: path
+      required: true
+      schema: { $ref: "../components/schemas/_common.yaml#/Uuid" }
+  get:
+    operationId: getSuborderShipment
+    tags: [Shipping]
+    summary: Status & pelacakan pengiriman satu suborder
+    responses:
+      "200":
+        description: Tampilan pengiriman.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/fulfillment.yaml#/ShipmentView"
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "404": { $ref: "../components/responses.yaml#/NotFound" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }

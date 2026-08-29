@@ -1,0 +1,17 @@
+# Konfigurasi Redocly: dipakai untuk `bundle` dan `preview-docs`.
+# Lint utama memakai Spectral (.spectral.yaml). Aturan Redocly di sini sengaja
+# minimal supaya tidak dobel dengan Spectral.
+extends:
+  - minimal
+
+apis:
+  main:
+    root: openapi/openapi.yaml
+
+rules:
+  no-unresolved-refs: error
+  no-identical-paths: error
+  operation-operationId-unique: error
+  operation-operationId: error
+  no-server-example.com: off
+  security-defined: off # ditangani Spectral (banyak operasi publik override security:[])

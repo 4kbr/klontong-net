@@ -1,0 +1,134 @@
+# Operasi /api/v1/addresses*. Butuh autentikasi. Alamat di-soft-delete.
+
+collection:
+  get:
+    operationId: listAddresses
+    tags: [Account]
+    summary: Daftar alamat pengiriman sendiri
+    responses:
+      "200":
+        description: Daftar alamat.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  type: array
+                  items:
+                    $ref: "../components/schemas/customer.yaml#/Address"
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+  post:
+    operationId: createAddress
+    tags: [Account]
+    summary: Tambah alamat
+    description: Maksimum ~20 alamat per pengguna. Nomor telepon dinormalisasi ke E.164.
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas/customer.yaml#/AddressCreateRequest"
+    responses:
+      "201":
+        description: Alamat dibuat.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/customer.yaml#/Address"
+      "400": { $ref: "../components/responses.yaml#/BadRequest" }
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "409": { $ref: "../components/responses.yaml#/Conflict" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+item:
+  parameters:
+    - name: addressId
+      in: path
+      required: true
+      schema: { $ref: "../components/schemas/_common.yaml#/Uuid" }
+  get:
+    operationId: getAddress
+    tags: [Account]
+    summary: Ambil satu alamat
+    responses:
+      "200":
+        description: Alamat.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/customer.yaml#/Address"
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "404": { $ref: "../components/responses.yaml#/NotFound" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+  patch:
+    operationId: updateAddress
+    tags: [Account]
+    summary: Perbarui alamat
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas/customer.yaml#/AddressUpdateRequest"
+    responses:
+      "200":
+        description: Alamat diperbarui.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/customer.yaml#/Address"
+      "400": { $ref: "../components/responses.yaml#/BadRequest" }
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "404": { $ref: "../components/responses.yaml#/NotFound" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+  delete:
+    operationId: deleteAddress
+    tags: [Account]
+    summary: Hapus alamat (soft-delete)
+    description: >-
+      Tidak pernah hard-delete karena pesanan lama merujuknya. Menghapus alamat
+      default akan mengalihkan default atau ditolak bila satu-satunya.
+    responses:
+      "204":
+        description: Alamat dihapus.
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "404": { $ref: "../components/responses.yaml#/NotFound" }
+      "409": { $ref: "../components/responses.yaml#/Conflict" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+setDefault:
+  parameters:
+    - name: addressId
+      in: path
+      required: true
+      schema: { $ref: "../components/schemas/_common.yaml#/Uuid" }
+  put:
+    operationId: setDefaultAddress
+    tags: [Account]
+    summary: Jadikan alamat default
+    description: Memindahkan tepat satu baris default dalam satu transaksi.
+    responses:
+      "204":
+        description: Default dipindahkan.
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "404": { $ref: "../components/responses.yaml#/NotFound" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }

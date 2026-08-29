@@ -1,0 +1,92 @@
+# Schema modul promotion — validasi voucher & daftar voucher tersedia.
+
+VoucherValidateRequest:
+  type: object
+  description: >-
+    Validasi kode voucher terhadap keranjang aktif + alamat. Tidak mengubah apa
+    pun; boleh dipanggil berulang. Diskon dibagi ke suborder dengan pembagian
+    deterministik (jumlah bagian = total diskon persis).
+  required: [code, address_id]
+  properties:
+    code:
+      type: string
+      example: HEMAT10K
+    address_id:
+      $ref: "./_common.yaml#/Uuid"
+  additionalProperties: false
+
+AppliedVoucher:
+  type: object
+  required: [code, owner_type, kind, applies_to, discount_amount, per_suborder]
+  properties:
+    code:
+      type: string
+      example: HEMAT10K
+    owner_type:
+      type: string
+      enum: [marketplace, seller]
+      description: Menentukan siapa menanggung diskon. Voucher seller hanya berlaku untuk suborder seller itu.
+    owner_seller_id:
+      $ref: "./_common.yaml#/UuidNullable"
+    kind:
+      type: string
+      enum: [percentage, fixed_amount, free_shipping]
+    applies_to:
+      type: string
+      enum: [items, shipping]
+    discount_amount:
+      allOf:
+        - $ref: "./_common.yaml#/Money"
+      description: Total diskon setelah cap & pembulatan ke bawah.
+    per_suborder:
+      type: array
+      description: Pembagian diskon per suborder. Jumlah seluruh entri = discount_amount.
+      items:
+        type: object
+        required: [seller_id, amount]
+        properties:
+          seller_id:
+            $ref: "./_common.yaml#/Uuid"
+          amount:
+            $ref: "./_common.yaml#/Money"
+
+VoucherOffer:
+  type: object
+  description: Voucher yang bisa dipakai pengguna ini (daftar promosi).
+  required: [code, kind, owner_type, applies_to]
+  properties:
+    code:
+      type: string
+      example: HEMAT10K
+    title:
+      type: string
+      example: Potongan Rp10.000
+    description:
+      type: string
+      nullable: true
+    owner_type:
+      type: string
+      enum: [marketplace, seller]
+    owner_seller_id:
+      $ref: "./_common.yaml#/UuidNullable"
+    kind:
+      type: string
+      enum: [percentage, fixed_amount, free_shipping]
+    applies_to:
+      type: string
+      enum: [items, shipping]
+    value_bps:
+      $ref: "./_common.yaml#/BasisPointsNullable"
+      description: Diisi untuk `percentage`.
+    value_amount:
+      $ref: "./_common.yaml#/MoneyNullable"
+      description: Diisi untuk `fixed_amount`.
+    max_discount_amount:
+      $ref: "./_common.yaml#/MoneyNullable"
+      description: Wajib untuk voucher `percentage`.
+    min_order_amount:
+      $ref: "./_common.yaml#/MoneyNullable"
+    starts_at:
+      $ref: "./_common.yaml#/Timestamp"
+    ends_at:
+      $ref: "./_common.yaml#/Timestamp"

@@ -1,0 +1,120 @@
+# Operasi notifikasi. Butuh autentikasi.
+
+collection:
+  parameters:
+    - $ref: "../components/parameters.yaml#/LimitParam"
+    - $ref: "../components/parameters.yaml#/CursorParam"
+    - name: unread_only
+      in: query
+      schema: { type: boolean, default: false }
+  get:
+    operationId: listNotifications
+    tags: [Notifications]
+    summary: Kotak masuk notifikasi
+    responses:
+      "200":
+        description: Daftar notifikasi (paginasi keyset).
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data, meta]
+              properties:
+                data:
+                  type: array
+                  items:
+                    $ref: "../components/schemas/notification.yaml#/Notification"
+                meta:
+                  $ref: "../components/schemas/_common.yaml#/Meta"
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+unreadCount:
+  get:
+    operationId: getUnreadNotificationCount
+    tags: [Notifications]
+    summary: Jumlah notifikasi belum dibaca
+    responses:
+      "200":
+        description: Jumlah belum dibaca.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/notification.yaml#/UnreadCount"
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+readAll:
+  post:
+    operationId: markAllNotificationsRead
+    tags: [Notifications]
+    summary: Tandai semua sudah dibaca
+    responses:
+      "204":
+        description: Semua ditandai dibaca.
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+read:
+  parameters:
+    - name: notificationId
+      in: path
+      required: true
+      schema: { $ref: "../components/schemas/_common.yaml#/Uuid" }
+  post:
+    operationId: markNotificationRead
+    tags: [Notifications]
+    summary: Tandai satu notifikasi sudah dibaca
+    responses:
+      "204":
+        description: Ditandai dibaca.
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "404": { $ref: "../components/responses.yaml#/NotFound" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+preferences:
+  get:
+    operationId: getNotificationPreferences
+    tags: [Notifications]
+    summary: Ambil preferensi notifikasi
+    responses:
+      "200":
+        description: Preferensi.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/notification.yaml#/NotificationPreference"
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+  put:
+    operationId: updateNotificationPreferences
+    tags: [Notifications]
+    summary: Perbarui preferensi notifikasi
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas/notification.yaml#/NotificationPreferenceUpdate"
+    responses:
+      "200":
+        description: Preferensi diperbarui.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/notification.yaml#/NotificationPreference"
+      "400": { $ref: "../components/responses.yaml#/BadRequest" }
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }

@@ -1,0 +1,59 @@
+# Ruleset lint kontrak Klontong Net.
+# Basis: aturan OpenAPI standar Spectral, plus beberapa penegasan proyek yang
+# aman terhadap engine JSONPath Spectral (hindari filter @property regex).
+extends:
+  - "spectral:oas"
+
+rules:
+  # --- standar dipertegas ---
+  operation-operationId: error
+  operation-operationId-unique: error
+  operation-tags: error
+  operation-success-response: error
+  oas3-valid-media-example: error
+  operation-description: off # ringkasan (summary) sudah cukup untuk kontrak ini
+  info-contact: warn
+
+  # --- aturan proyek ---
+  klontong-operationId-camelCase:
+    description: operationId harus camelCase (huruf & angka, diawali huruf kecil).
+    severity: error
+    given:
+      - "$.paths[*].get.operationId"
+      - "$.paths[*].post.operationId"
+      - "$.paths[*].put.operationId"
+      - "$.paths[*].patch.operationId"
+      - "$.paths[*].delete.operationId"
+    then:
+      function: pattern
+      functionOptions:
+        match: "^[a-z][a-zA-Z0-9]+$"
+
+  klontong-operation-single-tag:
+    description: Setiap operasi wajib punya tepat satu tag.
+    severity: error
+    given:
+      - "$.paths[*].get"
+      - "$.paths[*].post"
+      - "$.paths[*].put"
+      - "$.paths[*].patch"
+      - "$.paths[*].delete"
+    then:
+      field: tags
+      function: length
+      functionOptions:
+        min: 1
+        max: 1
+
+  klontong-tag-defined-in-root:
+    description: Tag operasi harus terdaftar di daftar `tags` root.
+    severity: warn
+    given:
+      - "$.paths[*].get"
+      - "$.paths[*].post"
+      - "$.paths[*].put"
+      - "$.paths[*].patch"
+      - "$.paths[*].delete"
+    then:
+      field: tags
+      function: defined

@@ -1,0 +1,60 @@
+# Operasi voucher untuk pembeli. Butuh autentikasi.
+
+validate:
+  post:
+    operationId: validateVoucher
+    tags: [Promotion]
+    summary: Validasi kode voucher terhadap keranjang
+    description: >-
+      Tidak mengubah apa pun; dipanggil berulang saat pembeli coba-coba kode.
+      Mengembalikan pembagian diskon per suborder (jumlah bagian = total diskon
+      persis).
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas/promotion.yaml#/VoucherValidateRequest"
+    responses:
+      "200":
+        description: Voucher valid; rincian diskon dikembalikan.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/promotion.yaml#/AppliedVoucher"
+      "400": { $ref: "../components/responses.yaml#/BadRequest" }
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "404": { $ref: "../components/responses.yaml#/NotFound" }
+      "409": { $ref: "../components/responses.yaml#/Conflict" }
+      "422": { $ref: "../components/responses.yaml#/UnprocessableEntity" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+available:
+  parameters:
+    - $ref: "../components/parameters.yaml#/LimitParam"
+    - $ref: "../components/parameters.yaml#/CursorParam"
+  get:
+    operationId: listAvailableVouchers
+    tags: [Promotion]
+    summary: Daftar voucher yang bisa dipakai pengguna ini
+    responses:
+      "200":
+        description: Daftar voucher (paginasi keyset).
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data, meta]
+              properties:
+                data:
+                  type: array
+                  items:
+                    $ref: "../components/schemas/promotion.yaml#/VoucherOffer"
+                meta:
+                  $ref: "../components/schemas/_common.yaml#/Meta"
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }

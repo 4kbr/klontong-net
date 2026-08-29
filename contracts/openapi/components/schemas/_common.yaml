@@ -1,0 +1,279 @@
+# Schema lintas modul: envelope, error, paginasi, tipe uang, enum status bersama.
+# Semua modul lain merujuk ke sini. Jangan menaruh bentuk khusus modul di file ini.
+
+# ---------------------------------------------------------------------------
+# Primitif
+# ---------------------------------------------------------------------------
+Money:
+  type: integer
+  format: int64
+  minimum: 0
+  description: >-
+    Nilai uang dalam rupiah penuh (bukan sen). Selalu berupa angka JSON, tidak
+    pernah string terformat. Contoh: 12500 berarti Rp12.500.
+  example: 12500
+
+MoneySigned:
+  type: integer
+  format: int64
+  description: >-
+    Seperti Money tapi boleh negatif (mis. penyesuaian buku besar, saldo setelah
+    refund melebihi pencairan).
+  example: -5000
+
+BasisPoints:
+  type: integer
+  minimum: 0
+  maximum: 10000
+  description: "Persentase dalam basis poin. 250 = 2,5%. 1250 = 12,5%."
+  example: 250
+
+Quantity:
+  type: number
+  minimum: 0
+  description: >-
+    Kuantitas. Boleh pecahan untuk satuan yang mengizinkan (mis. 0.5 kg). Satuan
+    non-pecahan (dus, renceng) menolak nilai pecahan — divalidasi server.
+  example: 2
+
+Uuid:
+  type: string
+  format: uuid
+  example: 3f1a6c2e-9b7d-4e2a-8c11-0a2b3c4d5e6f
+
+# Varian nullable dari primitif umum. Dipakai lewat $ref polos (tanpa sibling)
+# supaya validator contoh (ajv) tidak menolak `nullable` tanpa `type`.
+UuidNullable:
+  type: string
+  format: uuid
+  nullable: true
+
+MoneyNullable:
+  type: integer
+  format: int64
+  minimum: 0
+  nullable: true
+  description: Money atau null.
+
+BasisPointsNullable:
+  type: integer
+  minimum: 0
+  maximum: 10000
+  nullable: true
+
+QuantityNullable:
+  type: number
+  minimum: 0
+  nullable: true
+
+TimestampNullable:
+  type: string
+  format: date-time
+  nullable: true
+
+OrderNumber:
+  type: string
+  pattern: '^KN-\d{8}-\d{6}$'
+  description: Nomor pesanan yang dibaca manusia. Terpisah dari id UUID.
+  example: KN-20260827-000123
+
+SuborderNumber:
+  type: string
+  pattern: '^KN-\d{8}-\d{6}-\d+$'
+  example: KN-20260827-000123-1
+
+Timestamp:
+  type: string
+  format: date-time
+  example: "2026-08-27T09:30:00Z"
+
+Coordinate:
+  type: object
+  description: Koordinat geografis. Null bila alamat belum punya pin peta.
+  nullable: true
+  required: [latitude, longitude]
+  properties:
+    latitude:
+      type: number
+      format: double
+      example: -6.200000
+    longitude:
+      type: number
+      format: double
+      example: 106.816666
+
+# ---------------------------------------------------------------------------
+# Envelope
+# ---------------------------------------------------------------------------
+Meta:
+  type: object
+  description: >-
+    Metadata tingkat envelope. Untuk response daftar memuat kursor paginasi.
+    Objek kosong `{}` untuk response non-daftar.
+  properties:
+    next_cursor:
+      type: string
+      nullable: true
+      description: Kursor opaque (base64) untuk halaman berikutnya. Null bila habis.
+      example: eyJzIjoiMjAyNi0wOC0yN1QwOTozMDowMFoiLCJpZCI6IjNmMWE2YzJlIn0=
+    has_more:
+      type: boolean
+      example: true
+  additionalProperties: true
+
+# Envelope sukses TANPA data spesifik — dipakai untuk 204-ish / operasi tanpa body
+# berarti. Operasi lain memakai pola allOf: [SuccessEnvelope, { properties: { data: ... }}].
+SuccessEnvelope:
+  type: object
+  required: [data]
+  properties:
+    data:
+      description: Muatan utama. Bentuk ditentukan per operasi.
+    meta:
+      $ref: "#/Meta"
+
+Error:
+  type: object
+  description: Objek error di dalam envelope kegagalan.
+  required: [code, message]
+  properties:
+    code:
+      type: string
+      pattern: '^[a-z][a-z0-9_]+$'
+      description: >-
+        Kode mesin yang stabil dan spesifik. Frontend bercabang berdasarkan nilai
+        ini. Contoh: out_of_stock, price_changed, voucher_expired, token_expired.
+      example: price_changed
+    message:
+      type: string
+      description: >-
+        Pesan untuk manusia. Untuk 5xx berisi pesan generik saja; detail lengkap
+        ada di log server berikut request_id. Tidak pernah meneruskan teks error
+        gateway pembayaran ke pembeli.
+      example: Harga beberapa barang berubah sejak checkout ditampilkan.
+    fields:
+      type: object
+      additionalProperties:
+        type: string
+      description: Pesan validasi per-field (validasi bentuk request).
+      example:
+        recipient_phone: format nomor telepon tidak valid
+    retryable:
+      type: boolean
+      description: >-
+        Diisi untuk kegagalan upstream (gateway pembayaran / agregator kurir) yang
+        aman dicoba ulang. Absen bila tidak relevan.
+      example: false
+
+ErrorEnvelope:
+  type: object
+  required: [error]
+  properties:
+    error:
+      $ref: "#/Error"
+
+# Varian error dengan rincian per-baris, dipakai checkout.
+LineIssue:
+  type: object
+  required: [variant_id]
+  properties:
+    variant_id:
+      $ref: "#/Uuid"
+    product_name:
+      type: string
+      example: Indomie Goreng 1 dus
+    requested:
+      $ref: "#/Quantity"
+    available:
+      $ref: "#/Quantity"
+    old_unit_price:
+      $ref: "#/Money"
+    new_unit_price:
+      $ref: "#/Money"
+
+DetailedError:
+  description: >-
+    Envelope error yang membawa array `details` per-baris di dalam objek error.
+    Dipakai untuk `price_changed` dan `out_of_stock` pada checkout.
+  allOf:
+    - $ref: "#/ErrorEnvelope"
+    - type: object
+      properties:
+        error:
+          type: object
+          properties:
+            details:
+              type: array
+              items:
+                $ref: "#/LineIssue"
+
+# ---------------------------------------------------------------------------
+# Enum status (dikunci — sumber: apps/backend/docs/tasks/10..12)
+# ---------------------------------------------------------------------------
+OrderStatus:
+  type: string
+  description: >-
+    Status order induk. DITURUNKAN dari status suborder, tidak pernah disetel
+    langsung.
+  enum:
+    - pending_payment
+    - paid
+    - partially_fulfilled
+    - completed
+    - cancelled
+    - expired
+
+SuborderStatus:
+  type: string
+  description: >-
+    Status suborder. `delivered` (barang sampai) berbeda dari `completed` (tidak
+    ada sengketa, dana boleh cair). `shipped` tidak bisa dibatalkan.
+  enum:
+    - awaiting_confirmation
+    - confirmed
+    - packing
+    - shipped
+    - ready_for_pickup
+    - delivered
+    - completed
+    - cancelled
+    - rejected
+
+ShipmentMethod:
+  type: string
+  enum: [pickup, local_delivery, courier]
+
+ShipmentStatus:
+  type: string
+  enum: [pending, ready, picked_up, in_transit, delivered, failed, returned]
+
+PaymentMethod:
+  type: string
+  enum: [gateway, cod]
+
+PaymentStatus:
+  type: string
+  enum:
+    - pending
+    - authorized
+    - settled
+    - failed
+    - expired
+    - refunded
+    - partially_refunded
+
+FulfillmentMethod:
+  $ref: "#/ShipmentMethod"
+
+# ---------------------------------------------------------------------------
+# Bentuk umum lain
+# ---------------------------------------------------------------------------
+UnitCode:
+  type: string
+  description: "Kode satuan jual. Contoh: pcs, renceng, dus, kg, liter."
+  example: dus
+
+PageQueryEcho:
+  type: object
+  description: Tidak dipakai di wire; penanda dokumentatif untuk parameter limit/cursor.
+  properties: {}

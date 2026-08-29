@@ -1,0 +1,154 @@
+# Operasi katalog publik: kategori, penelusuran produk, detail produk.
+# OptionalAuth. Halaman ini harus bisa dibuka tanpa login (SEO & konversi).
+
+categories:
+  get:
+    operationId: listCategories
+    tags: [Catalog]
+    summary: Pohon kategori
+    security: []
+    responses:
+      "200":
+        description: Kategori sebagai pohon.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  type: array
+                  items:
+                    $ref: "../components/schemas/catalog.yaml#/CategoryNode"
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+products:
+  parameters:
+    - $ref: "../components/parameters.yaml#/LimitParam"
+    - $ref: "../components/parameters.yaml#/CursorParam"
+    - $ref: "../components/parameters.yaml#/SortParam"
+    - name: category
+      in: query
+      schema: { type: string }
+      description: Slug atau id kategori.
+    - name: seller
+      in: query
+      schema: { type: string }
+      description: Slug atau id toko.
+    - name: city
+      in: query
+      schema: { type: string }
+    - name: price_min
+      in: query
+      schema: { $ref: "../components/schemas/_common.yaml#/Money" }
+    - name: price_max
+      in: query
+      schema: { $ref: "../components/schemas/_common.yaml#/Money" }
+    - name: rating_min
+      in: query
+      schema: { type: number, minimum: 0, maximum: 5 }
+  get:
+    operationId: browseProducts
+    tags: [Catalog]
+    summary: Telusuri produk
+    security: []
+    responses:
+      "200":
+        description: Daftar produk (paginasi keyset).
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data, meta]
+              properties:
+                data:
+                  type: array
+                  items:
+                    $ref: "../components/schemas/catalog.yaml#/ProductCard"
+                meta:
+                  $ref: "../components/schemas/_common.yaml#/Meta"
+            examples:
+              page:
+                value:
+                  data:
+                    - id: 3f1a6c2e-9b7d-4e2a-8c11-0a2b3c4d5e6f
+                      slug: indomie-goreng
+                      name: Indomie Goreng
+                      seller: { id: 7c9d0b1a-2e3f-4a5b-8c6d-7e8f9a0b1c2d, slug: toko-berkah, name: Toko Berkah, city: Jakarta Selatan }
+                      primary_image_url: https://cdn.klontong.example/p/indomie/1.jpg
+                      price_from: 3200
+                      compare_at_from: 3600
+                      rating: { average: 4.6, count: 342 }
+                      sold_count: 1280
+                      in_stock: true
+                  meta:
+                    next_cursor: eyJzIjoiMjAyNi0wOC0yNyIsImlkIjoiM2YxYTZjMmUifQ==
+                    has_more: true
+      "400": { $ref: "../components/responses.yaml#/BadRequest" }
+      "429": { $ref: "../components/responses.yaml#/TooManyRequests" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+productSearch:
+  parameters:
+    - name: q
+      in: query
+      required: true
+      schema: { type: string }
+      example: indomie
+    - $ref: "../components/parameters.yaml#/LimitParam"
+    - $ref: "../components/parameters.yaml#/CursorParam"
+  get:
+    operationId: searchProducts
+    tags: [Catalog]
+    summary: Pencarian produk
+    security: []
+    responses:
+      "200":
+        description: Hasil pencarian (paginasi keyset).
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data, meta]
+              properties:
+                data:
+                  type: array
+                  items:
+                    $ref: "../components/schemas/catalog.yaml#/ProductCard"
+                meta:
+                  $ref: "../components/schemas/_common.yaml#/Meta"
+      "400": { $ref: "../components/responses.yaml#/BadRequest" }
+      "429": { $ref: "../components/responses.yaml#/TooManyRequests" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+productDetail:
+  parameters:
+    - name: slug
+      in: path
+      required: true
+      description: >-
+        Slug produk. Catatan scaffold: endpoint sibling
+        `/api/v1/products/{productId}/reviews` memakai id, bukan slug — campuran
+        ini diseragamkan saat implementasi.
+      schema:
+        type: string
+      example: indomie-goreng
+  get:
+    operationId: getProductDetail
+    tags: [Catalog]
+    summary: Detail produk
+    description: Produk + varian + harga hasil resolusi + ketersediaan (di-batch per varian).
+    security: []
+    responses:
+      "200":
+        description: Detail produk.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/catalog.yaml#/ProductDetail"
+      "404": { $ref: "../components/responses.yaml#/NotFound" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }

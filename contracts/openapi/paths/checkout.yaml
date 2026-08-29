@@ -1,0 +1,105 @@
+# Operasi checkout dua tahap. Butuh autentikasi. `place` di balik middleware
+# idempotensi dan rate-limit ketat per-user.
+
+preview:
+  post:
+    operationId: previewCheckout
+    tags: [Checkout]
+    summary: Tahap 1 — hitung ulang checkout (tanpa mengikat)
+    description: >-
+      Mengelompokkan keranjang per penjual, memilih outlet, menghitung harga,
+      ketersediaan, ongkir, dan pembagian diskon voucher. Tidak menahan stok.
+      Boleh dipanggil berkali-kali.
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas/order.yaml#/CheckoutPreviewRequest"
+    responses:
+      "200":
+        description: Rincian checkout lengkap per suborder.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/order.yaml#/CheckoutPreview"
+      "400": { $ref: "../components/responses.yaml#/BadRequest" }
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "409": { $ref: "../components/responses.yaml#/Conflict" }
+      "422": { $ref: "../components/responses.yaml#/UnprocessableEntity" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+place:
+  post:
+    operationId: placeOrder
+    tags: [Checkout]
+    summary: Tahap 2 — buat pesanan
+    description: >-
+      Menghitung ulang semuanya dari nol dan hanya mempercayai pilihan klien.
+      Bila `client_grand_total` berbeda dari hitungan server → 409 `price_changed`
+      dengan rincian per-baris. Menahan stok, menebus voucher, membuat Order +
+      Suborder + Item (snapshot), membekukan komisi, lalu membuat pembayaran
+      setelah commit. **Header `Idempotency-Key` wajib** (400 bila tidak ada).
+    parameters:
+      - $ref: "../components/parameters.yaml#/IdempotencyKeyHeader"
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas/order.yaml#/PlaceOrderRequest"
+    responses:
+      "201":
+        description: Pesanan dibuat; instruksi pembayaran disertakan.
+        headers:
+          X-Request-ID: { $ref: "../components/headers.yaml#/XRequestId" }
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/order.yaml#/PlaceOrderResponse"
+      "400": { $ref: "../components/responses.yaml#/BadRequest" }
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "409":
+        description: >-
+          Bentrok — `price_changed` atau `out_of_stock` (dengan `error.details`
+          per-baris), `invalid_transition`, `quota_exhausted`, atau kunci
+          idempotensi masih diproses.
+        headers:
+          X-Request-ID: { $ref: "../components/headers.yaml#/XRequestId" }
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/_common.yaml#/DetailedError"
+            examples:
+              priceChanged:
+                value:
+                  error:
+                    code: price_changed
+                    message: Harga beberapa barang berubah.
+                    details:
+                      - variant_id: 3f1a6c2e-9b7d-4e2a-8c11-0a2b3c4d5e6f
+                        product_name: Indomie Goreng 1 dus
+                        old_unit_price: 120000
+                        new_unit_price: 124000
+              outOfStock:
+                value:
+                  error:
+                    code: out_of_stock
+                    message: Stok sebagian barang tidak mencukupi.
+                    details:
+                      - variant_id: 3f1a6c2e-9b7d-4e2a-8c11-0a2b3c4d5e6f
+                        product_name: Indomie Goreng 1 dus
+                        requested: 5
+                        available: 2
+      "422": { $ref: "../components/responses.yaml#/UnprocessableEntity" }
+      "429": { $ref: "../components/responses.yaml#/TooManyRequests" }
+      "502": { $ref: "../components/responses.yaml#/BadGateway" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }

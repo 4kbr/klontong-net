@@ -1,0 +1,130 @@
+# Schema modul customer — profil pembeli & alamat pengiriman.
+
+Address:
+  type: object
+  required:
+    - id
+    - recipient_name
+    - recipient_phone
+    - line1
+    - city
+    - province
+    - postal_code
+    - is_default
+    - created_at
+  properties:
+    id:
+      $ref: "./_common.yaml#/Uuid"
+    label:
+      type: string
+      description: "Nama alamat, mis. Rumah, Kantor."
+      example: Rumah
+    recipient_name:
+      type: string
+      example: Budi Santoso
+    recipient_phone:
+      type: string
+      description: E.164.
+      example: "081234567890"
+    line1:
+      type: string
+      example: Jl. Melati No. 12 RT 03 RW 05
+    line2:
+      type: string
+      nullable: true
+    city:
+      type: string
+      example: Jakarta Selatan
+    province:
+      type: string
+      example: DKI Jakarta
+    postal_code:
+      type: string
+      example: "12140"
+    coordinate:
+      $ref: "./_common.yaml#/Coordinate"
+    notes:
+      type: string
+      nullable: true
+      description: Patokan / catatan kurir.
+    is_default:
+      type: boolean
+    created_at:
+      $ref: "./_common.yaml#/Timestamp"
+
+AddressCreateRequest:
+  type: object
+  required: [recipient_name, recipient_phone, line1, city, province, postal_code]
+  properties:
+    label:
+      type: string
+      example: Rumah
+    recipient_name:
+      type: string
+    recipient_phone:
+      type: string
+    line1:
+      type: string
+    line2:
+      type: string
+    city:
+      type: string
+    province:
+      type: string
+    postal_code:
+      type: string
+    coordinate:
+      $ref: "./_common.yaml#/Coordinate"
+    notes:
+      type: string
+    set_as_default:
+      type: boolean
+      default: false
+  additionalProperties: false
+
+AddressUpdateRequest:
+  type: object
+  description: Semua field opsional; hanya yang dikirim yang diubah.
+  properties:
+    label:
+      type: string
+    recipient_name:
+      type: string
+    recipient_phone:
+      type: string
+    line1:
+      type: string
+    line2:
+      type: string
+      nullable: true
+    city:
+      type: string
+    province:
+      type: string
+    postal_code:
+      type: string
+    coordinate:
+      $ref: "./_common.yaml#/Coordinate"
+    notes:
+      type: string
+      nullable: true
+  additionalProperties: false
+
+CustomerProfile:
+  type: object
+  required: [user_id]
+  properties:
+    user_id:
+      $ref: "./_common.yaml#/Uuid"
+    full_name:
+      type: string
+    birth_date:
+      type: string
+      format: date
+      nullable: true
+    gender:
+      type: string
+      enum: [male, female, unspecified]
+      nullable: true
+    default_address_id:
+      $ref: "./_common.yaml#/UuidNullable"

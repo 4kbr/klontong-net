@@ -1,0 +1,192 @@
+# Operasi pesanan sisi pembeli. Butuh autentikasi + kepemilikan (dicek di usecase).
+# Catatan: `orderId` menerima UUID atau nomor pesanan (KN-YYYYMMDD-NNNNNN).
+
+collection:
+  parameters:
+    - $ref: "../components/parameters.yaml#/LimitParam"
+    - $ref: "../components/parameters.yaml#/CursorParam"
+    - name: status
+      in: query
+      schema: { $ref: "../components/schemas/_common.yaml#/OrderStatus" }
+  get:
+    operationId: listMyOrders
+    tags: [Orders]
+    summary: Daftar pesanan sendiri
+    responses:
+      "200":
+        description: Daftar pesanan (paginasi keyset).
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data, meta]
+              properties:
+                data:
+                  type: array
+                  items:
+                    $ref: "../components/schemas/order.yaml#/OrderCard"
+                meta:
+                  $ref: "../components/schemas/_common.yaml#/Meta"
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+item:
+  parameters:
+    - name: orderId
+      in: path
+      required: true
+      description: UUID order atau nomor pesanan (mis. KN-20260827-000123).
+      schema: { type: string }
+  get:
+    operationId: getMyOrder
+    tags: [Orders]
+    summary: Detail pesanan
+    description: Memuat semua suborder dengan status masing-masing — jangan dikolapskan jadi satu status.
+    responses:
+      "200":
+        description: Detail pesanan.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/order.yaml#/Order"
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "404": { $ref: "../components/responses.yaml#/NotFound" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+cancel:
+  parameters:
+    - name: orderId
+      in: path
+      required: true
+      schema: { type: string }
+  post:
+    operationId: cancelMyOrder
+    tags: [Orders]
+    summary: Batalkan pesanan (oleh pembeli)
+    description: >-
+      Hanya bila belum ada suborder yang `shipped`. Melepas semua reservasi stok,
+      mengembalikan kuota voucher, membatalkan pembayaran.
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas/order.yaml#/CancelOrderRequest"
+    responses:
+      "200":
+        description: Pesanan dibatalkan.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/order.yaml#/Order"
+      "400": { $ref: "../components/responses.yaml#/BadRequest" }
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "404": { $ref: "../components/responses.yaml#/NotFound" }
+      "409":
+        description: Tidak bisa dibatalkan (mis. `order_not_cancellable` karena sudah ada yang dikirim).
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/_common.yaml#/ErrorEnvelope"
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+payment:
+  parameters:
+    - name: orderId
+      in: path
+      required: true
+      schema: { type: string }
+  get:
+    operationId: getOrderPayment
+    tags: [Orders]
+    summary: Status & instruksi pembayaran pesanan
+    description: Tidak pernah memuat server key atau payload webhook mentah.
+    responses:
+      "200":
+        description: Status pembayaran.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/payment.yaml#/PaymentStatusView"
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "404": { $ref: "../components/responses.yaml#/NotFound" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+paymentRetry:
+  parameters:
+    - name: orderId
+      in: path
+      required: true
+      schema: { type: string }
+  post:
+    operationId: retryOrderPayment
+    tags: [Orders]
+    summary: Buat ulang pembayaran untuk pesanan belum dibayar
+    description: Untuk order `pending_payment` yang instruksi bayarnya kedaluwarsa/gagal.
+    parameters:
+      - $ref: "../components/parameters.yaml#/IdempotencyKeyHeader"
+    responses:
+      "201":
+        description: Instruksi pembayaran baru.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/payment.yaml#/PaymentInstruction"
+      "400": { $ref: "../components/responses.yaml#/BadRequest" }
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "404": { $ref: "../components/responses.yaml#/NotFound" }
+      "409": { $ref: "../components/responses.yaml#/Conflict" }
+      "502": { $ref: "../components/responses.yaml#/BadGateway" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+confirmReceived:
+  parameters:
+    - name: suborderId
+      in: path
+      required: true
+      schema: { $ref: "../components/schemas/_common.yaml#/Uuid" }
+  post:
+    operationId: confirmSuborderReceived
+    tags: [Orders]
+    summary: Konfirmasi barang diterima (percepat suborder ke completed)
+    responses:
+      "200":
+        description: Suborder dipindahkan ke `completed`.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/order.yaml#/Suborder"
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "404": { $ref: "../components/responses.yaml#/NotFound" }
+      "409":
+        description: Transisi tidak sah (mis. suborder belum `delivered`).
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/_common.yaml#/ErrorEnvelope"
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }

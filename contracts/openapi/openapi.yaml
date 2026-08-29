@@ -1,0 +1,187 @@
+openapi: 3.0.3
+
+info:
+  title: Klontong Net API
+  version: 0.1.0-M1
+  description: |
+    Kontrak API marketplace Klontong Net. **Contract-first**: dokumen ini ditulis
+    sebelum implementasi dan menjadi sumber kebenaran bentuk API untuk backend
+    (`apps/backend`) dan frontend (`apps/frontend`).
+
+    OpenAPI **3.0.3** dipilih (bukan 3.1) demi dukungan tooling yang lebih luas
+    untuk mock (Prism) dan codegen; `nullable: true` dipakai sesuai idiom 3.0.
+
+    ## Cakupan Milestone 1
+    Seluruh area pembeli `/api/v1/*` (publik & terautentikasi): auth, profil &
+    alamat, katalog & pencarian, keranjang, ongkir, voucher, checkout dua tahap,
+    pesanan & pembayaran, ulasan, notifikasi.
+
+    Area `/api/v1/seller/*`, `/api/v1/admin/*`, dan `/webhook/*` menyusul di
+    Milestone 2.
+
+    ## Konvensi
+    - **Envelope sukses**: `{ "data": <T>, "meta": <Meta> }`.
+    - **Envelope error**: `{ "error": { "code", "message", "fields"?, "retryable"? } }`.
+      `code` machine-stable, `lower_snake_case`, spesifik.
+    - **Paginasi**: keyset. `?limit` + `?cursor` (opaque). Response `meta.next_cursor`
+      + `meta.has_more`. Bukan offset.
+    - **Uang**: `integer` (int64) rupiah, selalu angka. Persen = basis poin.
+    - **Header**: `Authorization: Bearer <jwt>`; `Idempotency-Key` wajib di
+      `POST /api/v1/checkout`; `X-Request-ID` di echo semua response.
+    - **ADR-004**: request checkout tidak memuat field harga/total. Klien mengirim
+      pilihan; `client_grand_total` hanya pembanding pemicu `price_changed`.
+    - **Order** selalu order induk + array suborder dengan status masing-masing.
+
+    ## Catatan ketidaksesuaian scaffold
+    - `order` routes memakai `/api/v1/seller/orders/{suborderId}` (M2); task doc 12
+      menulis `.../suborders/{id}`. Kontrak mengikuti `routes.go`.
+    - `GET /products/{slug}` vs `GET /products/{productId}/reviews` campur slug/id —
+      didokumentasikan apa adanya, diseragamkan saat implementasi.
+  contact:
+    name: Tim Klontong Net
+  license:
+    name: UNLICENSED
+
+servers:
+  - url: http://localhost:8080
+    description: Lokal (API dev)
+  - url: http://localhost:4010
+    description: Mock Prism dari kontrak ini
+  - url: https://api.klontong.example
+    description: Produksi (placeholder)
+
+tags:
+  - name: Auth
+    description: Registrasi, login, sesi, verifikasi, reset kata sandi.
+  - name: Account
+    description: Profil pengguna dan alamat pengiriman.
+  - name: Catalog
+    description: Penelusuran produk publik, kategori, halaman toko publik.
+  - name: Cart
+    description: Keranjang belanja, dikelompokkan per penjual.
+  - name: Shipping
+    description: Perhitungan ongkir per suborder dan tampilan pengiriman untuk pembeli.
+  - name: Promotion
+    description: Validasi voucher dan daftar voucher yang tersedia.
+  - name: Checkout
+    description: Alur checkout dua tahap — preview lalu place order.
+  - name: Orders
+    description: Pesanan pembeli, siklus suborder dari sisi pembeli, status pembayaran.
+  - name: Reviews
+    description: Ulasan produk oleh pembeli terverifikasi.
+  - name: Notifications
+    description: Kotak masuk notifikasi dan preferensi.
+
+security:
+  - bearerAuth: []
+
+paths:
+  /healthz:
+    get:
+      operationId: healthz
+      tags: [Auth]
+      summary: Liveness probe
+      security: []
+      responses:
+        "200":
+          description: Server hidup.
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: ok
+
+  /readyz:
+    get:
+      operationId: readyz
+      tags: [Auth]
+      summary: Readiness probe
+      security: []
+      responses:
+        "200":
+          description: Server siap menerima trafik.
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: ready
+        "503":
+          description: Belum siap (DB/Redis belum tersambung).
+          content:
+            application/json:
+              schema:
+                $ref: "./components/schemas/_common.yaml#/ErrorEnvelope"
+
+  # --- Auth ---
+  /api/v1/auth/register: { $ref: "./paths/auth.yaml#/register" }
+  /api/v1/auth/login: { $ref: "./paths/auth.yaml#/login" }
+  /api/v1/auth/refresh: { $ref: "./paths/auth.yaml#/refresh" }
+  /api/v1/auth/logout: { $ref: "./paths/auth.yaml#/logout" }
+  /api/v1/auth/verify-email: { $ref: "./paths/auth.yaml#/verifyEmail" }
+  /api/v1/auth/request-otp: { $ref: "./paths/auth.yaml#/requestOtp" }
+  /api/v1/auth/verify-otp: { $ref: "./paths/auth.yaml#/verifyOtp" }
+  /api/v1/auth/forgot-password: { $ref: "./paths/auth.yaml#/forgotPassword" }
+  /api/v1/auth/reset-password: { $ref: "./paths/auth.yaml#/resetPassword" }
+
+  # --- Account ---
+  /api/v1/me: { $ref: "./paths/me.yaml#/me" }
+  /api/v1/me/password: { $ref: "./paths/me.yaml#/mePassword" }
+  /api/v1/profile: { $ref: "./paths/me.yaml#/profile" }
+  /api/v1/addresses: { $ref: "./paths/addresses.yaml#/collection" }
+  /api/v1/addresses/{addressId}: { $ref: "./paths/addresses.yaml#/item" }
+  /api/v1/addresses/{addressId}/default: { $ref: "./paths/addresses.yaml#/setDefault" }
+
+  # --- Catalog (publik) ---
+  /api/v1/sellers/{slug}: { $ref: "./paths/sellers-public.yaml#/seller" }
+  /api/v1/sellers/{slug}/products: { $ref: "./paths/sellers-public.yaml#/sellerProducts" }
+  /api/v1/categories: { $ref: "./paths/catalog-public.yaml#/categories" }
+  /api/v1/products: { $ref: "./paths/catalog-public.yaml#/products" }
+  /api/v1/products/search: { $ref: "./paths/catalog-public.yaml#/productSearch" }
+  /api/v1/products/{slug}: { $ref: "./paths/catalog-public.yaml#/productDetail" }
+  /api/v1/products/{productId}/reviews: { $ref: "./paths/reviews.yaml#/productReviews" }
+
+  # --- Cart ---
+  /api/v1/cart: { $ref: "./paths/cart.yaml#/cart" }
+  /api/v1/cart/items: { $ref: "./paths/cart.yaml#/items" }
+  /api/v1/cart/items/{itemId}: { $ref: "./paths/cart.yaml#/item" }
+  /api/v1/cart/merge: { $ref: "./paths/cart.yaml#/merge" }
+
+  # --- Shipping ---
+  /api/v1/shipping/quote: { $ref: "./paths/shipping.yaml#/quote" }
+  /api/v1/suborders/{suborderId}/shipment: { $ref: "./paths/shipping.yaml#/suborderShipment" }
+
+  # --- Promotion ---
+  /api/v1/vouchers/validate: { $ref: "./paths/vouchers.yaml#/validate" }
+  /api/v1/vouchers/available: { $ref: "./paths/vouchers.yaml#/available" }
+
+  # --- Checkout ---
+  /api/v1/checkout/preview: { $ref: "./paths/checkout.yaml#/preview" }
+  /api/v1/checkout: { $ref: "./paths/checkout.yaml#/place" }
+
+  # --- Orders ---
+  /api/v1/orders: { $ref: "./paths/orders.yaml#/collection" }
+  /api/v1/orders/{orderId}: { $ref: "./paths/orders.yaml#/item" }
+  /api/v1/orders/{orderId}/cancel: { $ref: "./paths/orders.yaml#/cancel" }
+  /api/v1/orders/{orderId}/payment: { $ref: "./paths/orders.yaml#/payment" }
+  /api/v1/orders/{orderId}/payment/retry: { $ref: "./paths/orders.yaml#/paymentRetry" }
+  /api/v1/suborders/{suborderId}/confirm-received: { $ref: "./paths/orders.yaml#/confirmReceived" }
+
+  # --- Reviews ---
+  /api/v1/reviews: { $ref: "./paths/reviews.yaml#/collection" }
+  /api/v1/reviews/{reviewId}: { $ref: "./paths/reviews.yaml#/item" }
+  /api/v1/reviews/{reviewId}/report: { $ref: "./paths/reviews.yaml#/report" }
+  /api/v1/me/reviews: { $ref: "./paths/reviews.yaml#/myReviews" }
+
+  # --- Notifications ---
+  /api/v1/notifications: { $ref: "./paths/notifications.yaml#/collection" }
+  /api/v1/notifications/unread-count: { $ref: "./paths/notifications.yaml#/unreadCount" }
+  /api/v1/notifications/read-all: { $ref: "./paths/notifications.yaml#/readAll" }
+  /api/v1/notifications/{notificationId}/read: { $ref: "./paths/notifications.yaml#/read" }
+  /api/v1/notifications/preferences: { $ref: "./paths/notifications.yaml#/preferences" }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      $ref: "./components/securitySchemes.yaml#/bearerAuth"
+    webhookSignature:
+      $ref: "./components/securitySchemes.yaml#/webhookSignature"

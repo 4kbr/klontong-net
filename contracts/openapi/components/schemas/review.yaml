@@ -1,0 +1,120 @@
+# Schema modul review.
+
+CreateReviewRequest:
+  type: object
+  description: >-
+    Membuat ulasan. Server memverifikasi kepemilikan lewat riwayat pembelian
+    (bukan mempercayai id dari klien) dan mensyaratkan suborder berstatus
+    `completed`. Satu ulasan per barang yang dibeli.
+  required: [order_item_id, rating]
+  properties:
+    order_item_id:
+      $ref: "./_common.yaml#/Uuid"
+    rating:
+      type: integer
+      minimum: 1
+      maximum: 5
+    comment:
+      type: string
+      nullable: true
+    image_urls:
+      type: array
+      items:
+        type: string
+        format: uri
+    is_anonymous:
+      type: boolean
+      default: false
+  additionalProperties: false
+
+UpdateReviewRequest:
+  type: object
+  description: Hanya boleh dalam jendela waktu edit.
+  properties:
+    rating:
+      type: integer
+      minimum: 1
+      maximum: 5
+    comment:
+      type: string
+      nullable: true
+  additionalProperties: false
+
+ReportReviewRequest:
+  type: object
+  required: [reason]
+  properties:
+    reason:
+      type: string
+      example: Mengandung ujaran kebencian
+  additionalProperties: false
+
+Review:
+  type: object
+  required: [id, product_id, rating, status, created_at]
+  properties:
+    id:
+      $ref: "./_common.yaml#/Uuid"
+    product_id:
+      $ref: "./_common.yaml#/Uuid"
+    variant_id:
+      $ref: "./_common.yaml#/Uuid"
+    order_item_id:
+      $ref: "./_common.yaml#/Uuid"
+    author_name:
+      type: string
+      nullable: true
+      description: Null bila ulasan anonim.
+      example: Budi S.
+    rating:
+      type: integer
+      minimum: 1
+      maximum: 5
+    comment:
+      type: string
+      nullable: true
+    image_urls:
+      type: array
+      items:
+        type: string
+        format: uri
+    is_anonymous:
+      type: boolean
+    status:
+      type: string
+      enum: [published, hidden]
+    seller_reply:
+      type: object
+      nullable: true
+      properties:
+        body:
+          type: string
+        replied_at:
+          $ref: "./_common.yaml#/Timestamp"
+    created_at:
+      $ref: "./_common.yaml#/Timestamp"
+    edited_at:
+      $ref: "./_common.yaml#/TimestampNullable"
+
+ReviewSummary:
+  type: object
+  required: [product_id, average, count, breakdown]
+  properties:
+    product_id:
+      $ref: "./_common.yaml#/Uuid"
+    average:
+      type: number
+      format: float
+      minimum: 0
+      maximum: 5
+    count:
+      type: integer
+    breakdown:
+      type: object
+      description: Jumlah ulasan per bintang.
+      properties:
+        "1": { type: integer }
+        "2": { type: integer }
+        "3": { type: integer }
+        "4": { type: integer }
+        "5": { type: integer }

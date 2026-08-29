@@ -1,0 +1,134 @@
+# Schema modul fulfillment — quote ongkir (per suborder) dan tampilan pengiriman
+# untuk pembeli.
+
+ShippingQuoteRequest:
+  type: object
+  description: >-
+    Minta opsi ongkir untuk keranjang aktif terhadap satu alamat. Ongkir dihitung
+    per calon suborder (per penjual, dari outlet masing-masing).
+  required: [address_id]
+  properties:
+    address_id:
+      $ref: "./_common.yaml#/Uuid"
+  additionalProperties: false
+
+ShippingQuoteResponse:
+  type: object
+  required: [groups]
+  properties:
+    groups:
+      type: array
+      items:
+        $ref: "#/SuborderQuoteGroup"
+
+SuborderQuoteGroup:
+  type: object
+  description: Opsi ongkir untuk barang satu penjual.
+  required: [seller, outlet_id, options]
+  properties:
+    seller:
+      $ref: "./catalog.yaml#/SellerRef"
+    outlet_id:
+      $ref: "./_common.yaml#/Uuid"
+    options:
+      type: array
+      items:
+        $ref: "#/ShippingOption"
+    notice:
+      type: string
+      nullable: true
+      description: >-
+        Catatan bila sebagian opsi tidak tersedia (mis. agregat kurir sedang gagal,
+        opsi lain tetap ditampilkan).
+
+ShippingOption:
+  type: object
+  required: [quote_id, method, amount, expires_at]
+  properties:
+    quote_id:
+      allOf:
+        - $ref: "./_common.yaml#/Uuid"
+      description: Dipakai saat checkout untuk mengunci opsi ini. Punya masa berlaku.
+    method:
+      $ref: "./_common.yaml#/ShipmentMethod"
+    courier_code:
+      type: string
+      nullable: true
+      example: jne
+    courier_service:
+      type: string
+      nullable: true
+      example: REG
+    amount:
+      allOf:
+        - $ref: "./_common.yaml#/Money"
+      description: "0 untuk `pickup`."
+    etd_min_day:
+      type: integer
+      nullable: true
+      example: 1
+    etd_max_day:
+      type: integer
+      nullable: true
+      example: 3
+    distance_km:
+      type: number
+      nullable: true
+      description: Diisi untuk `local_delivery`.
+      example: 4.2
+    expires_at:
+      $ref: "./_common.yaml#/Timestamp"
+
+ShipmentView:
+  type: object
+  description: Tampilan pengiriman satu suborder untuk pembeli.
+  required: [suborder_id, method, status]
+  properties:
+    suborder_id:
+      $ref: "./_common.yaml#/Uuid"
+    method:
+      $ref: "./_common.yaml#/ShipmentMethod"
+    status:
+      $ref: "./_common.yaml#/ShipmentStatus"
+    courier_code:
+      type: string
+      nullable: true
+    courier_service:
+      type: string
+      nullable: true
+    tracking_number:
+      type: string
+      nullable: true
+    pickup_code:
+      type: string
+      nullable: true
+      description: Diisi untuk metode `pickup` sampai barang diambil.
+    pickup_expires_at:
+      $ref: "./_common.yaml#/TimestampNullable"
+    estimated_delivery_at:
+      $ref: "./_common.yaml#/TimestampNullable"
+    shipped_at:
+      $ref: "./_common.yaml#/TimestampNullable"
+    delivered_at:
+      $ref: "./_common.yaml#/TimestampNullable"
+    proof_url:
+      type: string
+      format: uri
+      nullable: true
+    tracking_events:
+      type: array
+      items:
+        $ref: "#/TrackingEvent"
+
+TrackingEvent:
+  type: object
+  required: [at, description]
+  properties:
+    at:
+      $ref: "./_common.yaml#/Timestamp"
+    status:
+      type: string
+      example: in_transit
+    description:
+      type: string
+      example: Paket tiba di gudang transit Jakarta

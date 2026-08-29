@@ -1,0 +1,106 @@
+# Operasi /api/v1/me dan /api/v1/profile. Semua butuh autentikasi.
+
+me:
+  get:
+    operationId: getMe
+    tags: [Account]
+    summary: Profil akun sendiri
+    responses:
+      "200":
+        description: Data akun.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/auth.yaml#/AuthUser"
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+  patch:
+    operationId: updateMe
+    tags: [Account]
+    summary: Perbarui profil akun
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas/auth.yaml#/UpdateProfileRequest"
+    responses:
+      "200":
+        description: Profil diperbarui.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/auth.yaml#/AuthUser"
+      "400": { $ref: "../components/responses.yaml#/BadRequest" }
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+mePassword:
+  put:
+    operationId: changePassword
+    tags: [Account]
+    summary: Ganti kata sandi
+    description: Setelah berhasil, seluruh sesi lain dicabut.
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas/auth.yaml#/ChangePasswordRequest"
+    responses:
+      "204":
+        description: Kata sandi diganti.
+      "400": { $ref: "../components/responses.yaml#/BadRequest" }
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+profile:
+  get:
+    operationId: getCustomerProfile
+    tags: [Account]
+    summary: Profil pelanggan (tanggal lahir, gender, alamat default)
+    responses:
+      "200":
+        description: Profil pelanggan.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/customer.yaml#/CustomerProfile"
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+  patch:
+    operationId: updateCustomerProfile
+    tags: [Account]
+    summary: Perbarui profil pelanggan
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas/auth.yaml#/UpdateProfileRequest"
+    responses:
+      "200":
+        description: Profil diperbarui.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/customer.yaml#/CustomerProfile"
+      "400": { $ref: "../components/responses.yaml#/BadRequest" }
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }

@@ -1,0 +1,16 @@
+# Header response yang dipakai berulang.
+
+XRequestId:
+  description: >-
+    Id korelasi request. Dibaca dari header `X-Request-ID` bila ada, atau
+    dibuat server. Di-echo pada semua response.
+  schema:
+    type: string
+  example: 7b1c2d3e-4f56-7890-abcd-ef1234567890
+
+RetryAfter:
+  description: Jumlah detik menunggu sebelum mencoba lagi. Dikirim pada 429.
+  schema:
+    type: integer
+    minimum: 0
+  example: 30

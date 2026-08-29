@@ -1,0 +1,21 @@
+{
+  "name": "klontong-net-contracts",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Kontrak OpenAPI Klontong Net — sumber kebenaran bentuk API untuk backend dan frontend.",
+  "type": "module",
+  "scripts": {
+    "lint": "spectral lint openapi/openapi.yaml",
+    "bundle": "redocly bundle openapi/openapi.yaml -o dist/openapi.yaml",
+    "bundle:json": "redocly bundle openapi/openapi.yaml -o dist/openapi.json",
+    "mock": "prism mock openapi/openapi.yaml -p 4010",
+    "mock:dynamic": "prism mock openapi/openapi.yaml -p 4010 --dynamic",
+    "preview": "redocly preview-docs openapi/openapi.yaml",
+    "ci": "npm run lint && npm run bundle"
+  },
+  "devDependencies": {
+    "@redocly/cli": "^1.25.0",
+    "@stoplight/prism-cli": "^5.12.0",
+    "@stoplight/spectral-cli": "^6.13.0"
+  }
+}

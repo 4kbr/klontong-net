@@ -1,0 +1,152 @@
+# Operasi /api/v1/cart*. OptionalAuth: keranjang tamu via cookie/header session_token;
+# keranjang pengguna via bearer token. Menambah barang TIDAK menahan stok.
+
+cart:
+  get:
+    operationId: getCart
+    tags: [Cart]
+    summary: Ambil keranjang (dikelompokkan per penjual)
+    description: >-
+      Server menghitung ulang harga & ketersediaan setiap kali dipanggil dan
+      menandai baris bermasalah. Frontend tidak mengelompokkan ulang.
+    security:
+      - bearerAuth: []
+      - {}
+    responses:
+      "200":
+        description: Keranjang.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/cart.yaml#/Cart"
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+  delete:
+    operationId: clearCart
+    tags: [Cart]
+    summary: Kosongkan keranjang
+    security:
+      - bearerAuth: []
+      - {}
+    responses:
+      "204":
+        description: Keranjang dikosongkan.
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+items:
+  post:
+    operationId: addCartItem
+    tags: [Cart]
+    summary: Tambah barang ke keranjang
+    description: >-
+      Tidak pernah menolak karena stok; boleh menandai stok menipis. Request tidak
+      memuat harga.
+    security:
+      - bearerAuth: []
+      - {}
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas/cart.yaml#/AddCartItemRequest"
+    responses:
+      "200":
+        description: Keranjang setelah penambahan.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/cart.yaml#/Cart"
+      "400": { $ref: "../components/responses.yaml#/BadRequest" }
+      "404": { $ref: "../components/responses.yaml#/NotFound" }
+      "409": { $ref: "../components/responses.yaml#/Conflict" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+item:
+  parameters:
+    - name: itemId
+      in: path
+      required: true
+      schema: { $ref: "../components/schemas/_common.yaml#/Uuid" }
+  patch:
+    operationId: updateCartItem
+    tags: [Cart]
+    summary: Ubah kuantitas baris
+    description: Kuantitas <= 0 menghapus baris. Kuantitas pecahan ditolak untuk satuan non-pecahan.
+    security:
+      - bearerAuth: []
+      - {}
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas/cart.yaml#/UpdateCartItemRequest"
+    responses:
+      "200":
+        description: Keranjang setelah perubahan.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/cart.yaml#/Cart"
+      "400": { $ref: "../components/responses.yaml#/BadRequest" }
+      "404": { $ref: "../components/responses.yaml#/NotFound" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+  delete:
+    operationId: removeCartItem
+    tags: [Cart]
+    summary: Hapus baris keranjang
+    security:
+      - bearerAuth: []
+      - {}
+    responses:
+      "200":
+        description: Keranjang setelah penghapusan.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/cart.yaml#/Cart"
+      "404": { $ref: "../components/responses.yaml#/NotFound" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+merge:
+  post:
+    operationId: mergeGuestCart
+    tags: [Cart]
+    summary: Gabungkan keranjang tamu ke keranjang pengguna
+    description: Setelah login. Menambah item; tidak menimpa. Varian+outlet sama → kuantitas dijumlahkan.
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas/cart.yaml#/MergeCartRequest"
+    responses:
+      "200":
+        description: Keranjang pengguna setelah digabung.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/cart.yaml#/Cart"
+      "400": { $ref: "../components/responses.yaml#/BadRequest" }
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }

@@ -1,0 +1,139 @@
+# Schema modul cart. Keranjang selalu dikelompokkan per penjual. Frontend tidak
+# mengelompokkan ulang. Harga di baris hanya cache tampilan (dihitung ulang server).
+
+Cart:
+  type: object
+  required: [id, groups, summary]
+  properties:
+    id:
+      $ref: "./_common.yaml#/Uuid"
+    is_guest:
+      type: boolean
+      description: True bila keranjang tamu (diidentifikasi session_token, bukan user).
+    groups:
+      type: array
+      items:
+        $ref: "#/CartGroup"
+    summary:
+      $ref: "#/CartSummary"
+
+CartGroup:
+  type: object
+  description: Barang dari satu penjual. Menjadi dasar pemecahan suborder.
+  required: [seller, lines, subtotal]
+  properties:
+    seller:
+      $ref: "./catalog.yaml#/SellerRef"
+    seller_status:
+      type: string
+      enum: [active, suspended]
+      description: Bila `suspended`, seluruh grup tidak bisa di-checkout.
+    lines:
+      type: array
+      items:
+        $ref: "#/CartLine"
+    subtotal:
+      $ref: "./_common.yaml#/Money"
+
+CartLine:
+  type: object
+  required: [id, variant_id, product_name, variant_name, quantity, unit_price, line_total, flags]
+  properties:
+    id:
+      $ref: "./_common.yaml#/Uuid"
+    variant_id:
+      $ref: "./_common.yaml#/Uuid"
+    product_id:
+      $ref: "./_common.yaml#/Uuid"
+    product_slug:
+      type: string
+    product_name:
+      type: string
+      example: Indomie Goreng
+    variant_name:
+      type: string
+      example: 1 dus (isi 40)
+    image_url:
+      type: string
+      format: uri
+      nullable: true
+    unit_code:
+      $ref: "./_common.yaml#/UnitCode"
+    quantity:
+      $ref: "./_common.yaml#/Quantity"
+    unit_price:
+      allOf:
+        - $ref: "./_common.yaml#/Money"
+      description: Harga satuan hasil resolusi server saat keranjang dibuka.
+    line_total:
+      $ref: "./_common.yaml#/Money"
+    note:
+      type: string
+      nullable: true
+    flags:
+      type: array
+      description: Penanda masalah pada baris ini. Kosong berarti aman.
+      items:
+        $ref: "#/CartLineFlag"
+
+CartLineFlag:
+  type: string
+  enum:
+    - price_changed
+    - low_stock
+    - out_of_stock
+    - archived
+    - seller_suspended
+    - fraction_not_allowed
+
+CartSummary:
+  type: object
+  required: [item_count, items_amount]
+  properties:
+    item_count:
+      type: integer
+      description: Jumlah baris (bukan jumlah kuantitas).
+      example: 4
+    items_amount:
+      allOf:
+        - $ref: "./_common.yaml#/Money"
+      description: Jumlah seluruh subtotal grup. Ongkir & diskon TIDAK termasuk (dihitung di checkout).
+
+AddCartItemRequest:
+  type: object
+  description: Klien mengirim pilihan barang, bukan harga.
+  required: [variant_id, quantity]
+  properties:
+    variant_id:
+      $ref: "./_common.yaml#/Uuid"
+    outlet_id:
+      $ref: "./_common.yaml#/UuidNullable"
+      description: Opsional. Bila kosong, server memilih outlet saat checkout.
+    quantity:
+      $ref: "./_common.yaml#/Quantity"
+    note:
+      type: string
+  additionalProperties: false
+
+UpdateCartItemRequest:
+  type: object
+  required: [quantity]
+  properties:
+    quantity:
+      allOf:
+        - $ref: "./_common.yaml#/Quantity"
+      description: Kuantitas <= 0 menghapus baris (bukan error).
+    note:
+      type: string
+      nullable: true
+  additionalProperties: false
+
+MergeCartRequest:
+  type: object
+  required: [session_token]
+  properties:
+    session_token:
+      type: string
+      description: Token keranjang tamu yang akan digabung ke keranjang pengguna (tambah, tidak menimpa).
+      example: guest_9f8e7d6c5b4a
+  additionalProperties: false

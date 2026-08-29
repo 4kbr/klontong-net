@@ -1,0 +1,63 @@
+# Operasi halaman toko publik. OptionalAuth: token dipakai bila ada (harga khusus),
+# selebihnya sebagai tamu.
+
+seller:
+  parameters:
+    - name: slug
+      in: path
+      required: true
+      schema:
+        type: string
+      example: toko-berkah
+  get:
+    operationId: getPublicSeller
+    tags: [Catalog]
+    summary: Halaman toko publik
+    description: Tidak pernah memuat rekening bank, dokumen, atau nilai komisi.
+    security: []
+    responses:
+      "200":
+        description: Info toko publik.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/catalog.yaml#/SellerPublic"
+      "404": { $ref: "../components/responses.yaml#/NotFound" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+sellerProducts:
+  parameters:
+    - name: slug
+      in: path
+      required: true
+      schema:
+        type: string
+    - $ref: "../components/parameters.yaml#/LimitParam"
+    - $ref: "../components/parameters.yaml#/CursorParam"
+    - $ref: "../components/parameters.yaml#/SortParam"
+  get:
+    operationId: listSellerProducts
+    tags: [Catalog]
+    summary: Daftar produk publik satu toko
+    security: []
+    responses:
+      "200":
+        description: Daftar produk toko (paginasi keyset).
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data, meta]
+              properties:
+                data:
+                  type: array
+                  items:
+                    $ref: "../components/schemas/catalog.yaml#/ProductCard"
+                meta:
+                  $ref: "../components/schemas/_common.yaml#/Meta"
+      "404": { $ref: "../components/responses.yaml#/NotFound" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }

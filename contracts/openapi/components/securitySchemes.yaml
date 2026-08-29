@@ -1,0 +1,24 @@
+# Skema keamanan. Dirujuk dari openapi.yaml (security global) dan bisa di-override
+# per operasi dengan `security: []` untuk endpoint publik.
+
+bearerAuth:
+  type: http
+  scheme: bearer
+  bearerFormat: JWT
+  description: >-
+    Access token JWT. TTL 15 menit, tidak dapat dicabut (revocation lewat refresh
+    token di DB). Klaim memuat `user_id` dan `roles`. Kirim sebagai
+    `Authorization: Bearer <token>`.
+    Area `/api/v1/seller/*` mensyaratkan peran `seller` + keanggotaan toko (dicek di
+    usecase). Area `/api/v1/admin/*` mensyaratkan peran `admin`.
+
+webhookSignature:
+  type: apiKey
+  in: header
+  name: X-Signature
+  description: >-
+    Tanda tangan webhook penyedia (nama header aktual bergantung provider — mis.
+    Midtrans mengirim `signature_key` di body). Diverifikasi dengan perbandingan
+    waktu-konstan. Payload yang tidak terverifikasi tidak pernah diproses.
+    Skema ini penanda dokumentatif; verifikasi nyata dilakukan handler, bukan
+    middleware auth.

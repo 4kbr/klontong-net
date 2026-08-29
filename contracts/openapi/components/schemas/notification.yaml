@@ -1,0 +1,74 @@
+# Schema modul notification. Response mengirim `kind` terstruktur + payload,
+# bukan kalimat jadi (i18n di klien).
+
+Notification:
+  type: object
+  required: [id, kind, payload, is_read, created_at]
+  properties:
+    id:
+      $ref: "./_common.yaml#/Uuid"
+    kind:
+      type: string
+      description: Jenis peristiwa. Klien memetakan ke teks lokal.
+      example: order_paid
+    payload:
+      type: object
+      description: Data konteks untuk merender pesan (mis. order_number, seller_name).
+      additionalProperties: true
+      example:
+        order_number: KN-20260827-000123
+        seller_name: Toko Berkah
+    channel:
+      type: string
+      enum: [inapp, email, whatsapp, push]
+      default: inapp
+    is_read:
+      type: boolean
+    created_at:
+      $ref: "./_common.yaml#/Timestamp"
+    read_at:
+      $ref: "./_common.yaml#/TimestampNullable"
+
+UnreadCount:
+  type: object
+  required: [count]
+  properties:
+    count:
+      type: integer
+      minimum: 0
+      example: 3
+
+NotificationPreference:
+  type: object
+  required: [email_enabled, push_enabled, whatsapp_enabled, order_updates, promotions, seller_updates]
+  properties:
+    email_enabled:
+      type: boolean
+    push_enabled:
+      type: boolean
+    whatsapp_enabled:
+      type: boolean
+    order_updates:
+      type: boolean
+    promotions:
+      type: boolean
+    seller_updates:
+      type: boolean
+
+NotificationPreferenceUpdate:
+  type: object
+  description: Semua field opsional; hanya yang dikirim yang diubah.
+  properties:
+    email_enabled:
+      type: boolean
+    push_enabled:
+      type: boolean
+    whatsapp_enabled:
+      type: boolean
+    order_updates:
+      type: boolean
+    promotions:
+      type: boolean
+    seller_updates:
+      type: boolean
+  additionalProperties: false

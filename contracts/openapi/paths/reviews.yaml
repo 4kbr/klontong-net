@@ -1,0 +1,168 @@
+# Operasi ulasan. Baca produk publik; tulis butuh autentikasi + verifikasi pembelian.
+
+productReviews:
+  parameters:
+    - name: productId
+      in: path
+      required: true
+      description: Id produk (catatan scaffold — sibling `/products/{slug}` memakai slug).
+      schema: { $ref: "../components/schemas/_common.yaml#/Uuid" }
+    - $ref: "../components/parameters.yaml#/LimitParam"
+    - $ref: "../components/parameters.yaml#/CursorParam"
+    - name: rating
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 5 }
+  get:
+    operationId: listProductReviews
+    tags: [Reviews]
+    summary: Ulasan sebuah produk
+    description: Penulis anonim tidak menampilkan nama. Ringkasan rating ada di `meta`.
+    security: []
+    responses:
+      "200":
+        description: Daftar ulasan (paginasi keyset) + ringkasan di meta.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data, meta]
+              properties:
+                data:
+                  type: array
+                  items:
+                    $ref: "../components/schemas/review.yaml#/Review"
+                meta:
+                  allOf:
+                    - $ref: "../components/schemas/_common.yaml#/Meta"
+                    - type: object
+                      properties:
+                        summary:
+                          $ref: "../components/schemas/review.yaml#/ReviewSummary"
+      "404": { $ref: "../components/responses.yaml#/NotFound" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+collection:
+  post:
+    operationId: createReview
+    tags: [Reviews]
+    summary: Tulis ulasan
+    description: >-
+      Server memverifikasi lewat riwayat pembelian (tidak mempercayai
+      `order_item_id` klien) dan mensyaratkan suborder `completed`. Satu ulasan
+      per barang yang dibeli.
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas/review.yaml#/CreateReviewRequest"
+    responses:
+      "201":
+        description: Ulasan dibuat.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/review.yaml#/Review"
+      "400": { $ref: "../components/responses.yaml#/BadRequest" }
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403":
+        description: "`not_purchased` atau `order_not_completed`."
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/_common.yaml#/ErrorEnvelope"
+      "409": { $ref: "../components/responses.yaml#/Conflict" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+item:
+  parameters:
+    - name: reviewId
+      in: path
+      required: true
+      schema: { $ref: "../components/schemas/_common.yaml#/Uuid" }
+  patch:
+    operationId: editReview
+    tags: [Reviews]
+    summary: Sunting ulasan (dalam jendela edit)
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas/review.yaml#/UpdateReviewRequest"
+    responses:
+      "200":
+        description: Ulasan diperbarui.
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data]
+              properties:
+                data:
+                  $ref: "../components/schemas/review.yaml#/Review"
+      "400": { $ref: "../components/responses.yaml#/BadRequest" }
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "403": { $ref: "../components/responses.yaml#/Forbidden" }
+      "404": { $ref: "../components/responses.yaml#/NotFound" }
+      "409":
+        description: "`edit_window_expired`."
+        content:
+          application/json:
+            schema:
+              $ref: "../components/schemas/_common.yaml#/ErrorEnvelope"
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+report:
+  parameters:
+    - name: reviewId
+      in: path
+      required: true
+      schema: { $ref: "../components/schemas/_common.yaml#/Uuid" }
+  post:
+    operationId: reportReview
+    tags: [Reviews]
+    summary: Laporkan ulasan
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "../components/schemas/review.yaml#/ReportReviewRequest"
+    responses:
+      "202":
+        description: Laporan diterima.
+      "400": { $ref: "../components/responses.yaml#/BadRequest" }
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "404": { $ref: "../components/responses.yaml#/NotFound" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }
+
+myReviews:
+  parameters:
+    - $ref: "../components/parameters.yaml#/LimitParam"
+    - $ref: "../components/parameters.yaml#/CursorParam"
+  get:
+    operationId: listMyReviews
+    tags: [Reviews]
+    summary: Ulasan yang saya tulis
+    responses:
+      "200":
+        description: Daftar ulasan sendiri (paginasi keyset).
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [data, meta]
+              properties:
+                data:
+                  type: array
+                  items:
+                    $ref: "../components/schemas/review.yaml#/Review"
+                meta:
+                  $ref: "../components/schemas/_common.yaml#/Meta"
+      "401": { $ref: "../components/responses.yaml#/Unauthorized" }
+      "500": { $ref: "../components/responses.yaml#/InternalServerError" }

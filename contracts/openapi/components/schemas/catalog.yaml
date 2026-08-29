@@ -1,0 +1,256 @@
+# Schema modul catalog (+ pricing & inventory view untuk pembeli).
+
+Category:
+  type: object
+  required: [id, slug, name, is_active]
+  properties:
+    id:
+      $ref: "./_common.yaml#/Uuid"
+    parent_id:
+      $ref: "./_common.yaml#/UuidNullable"
+    slug:
+      type: string
+      example: makanan-instan
+    name:
+      type: string
+      example: Makanan Instan
+    position:
+      type: integer
+      example: 1
+    is_active:
+      type: boolean
+
+CategoryNode:
+  description: Kategori dengan anak-anaknya (untuk endpoint tree).
+  allOf:
+    - $ref: "#/Category"
+    - type: object
+      properties:
+        children:
+          type: array
+          items:
+            $ref: "#/CategoryNode"
+
+ProductImage:
+  type: object
+  required: [id, url, position]
+  properties:
+    id:
+      $ref: "./_common.yaml#/Uuid"
+    url:
+      type: string
+      format: uri
+      example: https://cdn.klontong.example/products/abc/def/1.jpg
+    position:
+      type: integer
+      example: 0
+
+Variant:
+  type: object
+  description: >-
+    Varian jual. Stok disimpan dalam satuan dasar; `content_quantity` mengonversi
+    (mis. 1 dus = 40 pcs).
+  required:
+    - id
+    - sku
+    - name
+    - unit_code
+    - base_unit_code
+    - content_quantity
+    - weight_gram
+    - is_active
+  properties:
+    id:
+      $ref: "./_common.yaml#/Uuid"
+    sku:
+      type: string
+      example: IDM-GRG-DUS
+    name:
+      type: string
+      example: 1 dus (isi 40)
+    unit_code:
+      $ref: "./_common.yaml#/UnitCode"
+    base_unit_code:
+      $ref: "./_common.yaml#/UnitCode"
+    content_quantity:
+      $ref: "./_common.yaml#/Quantity"
+    allows_fraction:
+      type: boolean
+      description: Turunan dari satuan. Bila false, kuantitas pecahan ditolak.
+      example: false
+    weight_gram:
+      type: integer
+      minimum: 1
+      example: 4000
+    is_default:
+      type: boolean
+    is_active:
+      type: boolean
+
+ResolvedPrice:
+  type: object
+  description: >-
+    Harga efektif untuk suatu varian pada kuantitas tertentu. Tidak pernah memuat
+    harga pokok (`cost`). Jalur perhitungan sama dengan yang dipakai checkout.
+  required: [unit_price, currency]
+  properties:
+    unit_price:
+      $ref: "./_common.yaml#/Money"
+    compare_at_price:
+      $ref: "./_common.yaml#/MoneyNullable"
+      description: Harga coret. Selalu lebih besar dari `unit_price` bila ada.
+    currency:
+      type: string
+      enum: [IDR]
+      example: IDR
+    tier_applied:
+      type: object
+      nullable: true
+      description: Tier grosir yang dipakai untuk kuantitas ini.
+      properties:
+        min_quantity:
+          $ref: "./_common.yaml#/Quantity"
+        unit_price:
+          $ref: "./_common.yaml#/Money"
+    min_quantity_for_next_tier:
+      $ref: "./_common.yaml#/QuantityNullable"
+      description: Kuantitas minimum untuk mencapai tier lebih murah berikutnya.
+
+VariantAvailability:
+  type: object
+  description: Ketersediaan ringkas untuk pembeli (agregat lintas outlet toko).
+  required: [in_stock]
+  properties:
+    in_stock:
+      type: boolean
+    max_orderable:
+      $ref: "./_common.yaml#/QuantityNullable"
+      description: Batas atas kuantitas yang bisa dipesan sekarang (null bila tak dibatasi tampilan).
+    low_stock:
+      type: boolean
+      default: false
+
+VariantWithOffer:
+  description: Varian + harga resolusi + ketersediaan, seperti tampil di detail produk.
+  allOf:
+    - $ref: "#/Variant"
+    - type: object
+      required: [price, availability]
+      properties:
+        price:
+          $ref: "#/ResolvedPrice"
+        availability:
+          $ref: "#/VariantAvailability"
+
+ProductCard:
+  type: object
+  description: Bentuk ringkas produk untuk daftar/penelusuran.
+  required: [id, slug, name, seller, primary_image_url, price_from, rating]
+  properties:
+    id:
+      $ref: "./_common.yaml#/Uuid"
+    slug:
+      type: string
+      example: indomie-goreng
+    name:
+      type: string
+      example: Indomie Goreng
+    seller:
+      $ref: "#/SellerRef"
+    primary_image_url:
+      type: string
+      format: uri
+      nullable: true
+    price_from:
+      $ref: "./_common.yaml#/Money"
+    compare_at_from:
+      $ref: "./_common.yaml#/MoneyNullable"
+    rating:
+      $ref: "#/RatingSummary"
+    sold_count:
+      type: integer
+      example: 1280
+    in_stock:
+      type: boolean
+
+ProductDetail:
+  type: object
+  required: [id, slug, name, description, seller, category_id, images, variants, rating, status]
+  properties:
+    id:
+      $ref: "./_common.yaml#/Uuid"
+    slug:
+      type: string
+    name:
+      type: string
+    description:
+      type: string
+    seller:
+      $ref: "#/SellerRef"
+    category_id:
+      $ref: "./_common.yaml#/Uuid"
+    is_taxable:
+      type: boolean
+    images:
+      type: array
+      items:
+        $ref: "#/ProductImage"
+    variants:
+      type: array
+      items:
+        $ref: "#/VariantWithOffer"
+    rating:
+      $ref: "#/RatingSummary"
+    sold_count:
+      type: integer
+    status:
+      type: string
+      enum: [active, archived]
+      description: Produk non-`active` tidak muncul di penelusuran publik.
+
+SellerRef:
+  type: object
+  description: Referensi toko publik ringkas (tanpa bank/dokumen/komisi).
+  required: [id, slug, name]
+  properties:
+    id:
+      $ref: "./_common.yaml#/Uuid"
+    slug:
+      type: string
+      example: toko-berkah
+    name:
+      type: string
+      example: Toko Berkah
+    city:
+      type: string
+      example: Jakarta Selatan
+
+SellerPublic:
+  description: Halaman toko publik.
+  allOf:
+    - $ref: "#/SellerRef"
+    - type: object
+      properties:
+        description:
+          type: string
+        rating:
+          $ref: "#/RatingSummary"
+        product_count:
+          type: integer
+        joined_at:
+          $ref: "./_common.yaml#/Timestamp"
+
+RatingSummary:
+  type: object
+  required: [average, count]
+  properties:
+    average:
+      type: number
+      format: float
+      minimum: 0
+      maximum: 5
+      example: 4.6
+    count:
+      type: integer
+      minimum: 0
+      example: 342

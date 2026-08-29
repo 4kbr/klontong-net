@@ -1,0 +1,69 @@
+# Schema modul payment — instruksi bayar & status pembayaran (sisi pembeli).
+# COD tetap lewat CreatePayment (tanpa panggilan gateway); status mulai `pending`.
+
+PaymentInstruction:
+  type: object
+  description: Instruksi cara membayar sebuah order.
+  required: [payment_id, method, status, amount]
+  properties:
+    payment_id:
+      $ref: "./_common.yaml#/Uuid"
+    method:
+      $ref: "./_common.yaml#/PaymentMethod"
+    status:
+      $ref: "./_common.yaml#/PaymentStatus"
+    amount:
+      $ref: "./_common.yaml#/Money"
+    channel:
+      type: string
+      nullable: true
+      example: va_bca
+    expires_at:
+      $ref: "./_common.yaml#/TimestampNullable"
+    # detail spesifik kanal — tepat satu terisi untuk `gateway`
+    va_number:
+      type: string
+      nullable: true
+      example: "8808123456789012"
+    qr_string:
+      type: string
+      nullable: true
+      description: Payload QRIS mentah untuk digambar jadi QR di klien.
+    redirect_url:
+      type: string
+      format: uri
+      nullable: true
+      description: URL halaman bayar penyedia (redirect flow).
+    cod_note:
+      type: string
+      nullable: true
+      description: Diisi untuk `cod` — mis. "Bayar tunai ke kurir saat barang tiba."
+
+PaymentStatusView:
+  type: object
+  description: Status pembayaran satu order.
+  required: [payment_id, method, status, amount]
+  properties:
+    payment_id:
+      $ref: "./_common.yaml#/Uuid"
+    order_id:
+      $ref: "./_common.yaml#/Uuid"
+    method:
+      $ref: "./_common.yaml#/PaymentMethod"
+    status:
+      $ref: "./_common.yaml#/PaymentStatus"
+    amount:
+      $ref: "./_common.yaml#/Money"
+    channel:
+      type: string
+      nullable: true
+    paid_at:
+      $ref: "./_common.yaml#/TimestampNullable"
+    expires_at:
+      $ref: "./_common.yaml#/TimestampNullable"
+    instruction:
+      allOf:
+        - $ref: "#/PaymentInstruction"
+      description: >-
+        Diisi selama status masih `pending` supaya pembeli bisa menyelesaikan
+        pembayaran. Dihilangkan setelah pembayaran selesai/kedaluwarsa.
