@@ -1,7 +1,8 @@
 # Arsitektur
 
 Bagaimana sistem disusun. Untuk alasan di balik pilihannya baca
-[DECISIONS.md](DECISIONS.md); untuk cara mengerjakannya baca [GUIDES.md](GUIDES.md).
+[DECISIONS.md](DECISIONS.md); untuk cara mengerjakannya baca
+[GUIDES.md](../apps/backend/docs/GUIDES.md).
 
 ---
 

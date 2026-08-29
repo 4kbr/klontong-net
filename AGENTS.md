@@ -22,14 +22,14 @@ barang terjual padahal tidak ada.
 
 Dokumen pendamping:
 
-| Dokumen | Baca kalau |
-|---|---|
-| `docs/ARCHITECTURE.md` | tugas menyentuh lebih dari satu modul |
-| `docs/DECISIONS.md` | tugas menyentuh uang, stok, pesanan, atau pembayaran |
-| `docs/GUIDES.md` | tugas berupa "tambah endpoint / usecase / modul / event" |
+| Dokumen                       | Baca kalau                                               |
+| ----------------------------- | -------------------------------------------------------- |
+| `docs/ARCHITECTURE.md`        | tugas menyentuh lebih dari satu modul                    |
+| `docs/DECISIONS.md`           | tugas menyentuh uang, stok, pesanan, atau pembayaran     |
+| `apps/backend/docs/GUIDES.md` | tugas berupa "tambah endpoint / usecase / modul / event" |
 
-`docs/GUIDES.md` berisi daftar file yang harus dibuat dan diubah untuk setiap
-jenis tugas. **Ikuti daftar itu.**
+`apps/backend/docs/GUIDES.md` berisi daftar file yang harus dibuat dan diubah
+untuk setiap jenis tugas. **Ikuti daftar itu.**
 
 ---
 
@@ -174,7 +174,7 @@ selesai kalau belum dikompilasi.
 ## Alur kerja yang diharapkan
 
 1. **Baca dulu.** Lihat file terkait dan komentar TODO-nya.
-2. **Cek `docs/GUIDES.md`** untuk jenis tugas ini, ikuti daftar filenya.
+2. **Cek `apps/backend/docs/GUIDES.md`** untuk jenis tugas ini, ikuti daftar filenya.
 3. **Cek `docs/DECISIONS.md`** kalau menyentuh area yang sudah ada ADR-nya.
 4. **Kerjakan seminimal mungkin** untuk menyelesaikan permintaan.
 5. **Kompilasi dan lint.**
@@ -209,25 +209,25 @@ Kalau user memutuskan menyimpang, **tulis ADR baru di `docs/DECISIONS.md`**.
 
 ## Anti-pola yang sering muncul
 
-| Anti-pola | Yang benar |
-|---|---|
-| `float64` untuk uang | `money.Amount` (int64 rupiah) |
-| Membuang sisa pembulatan | `money.Distribute` |
-| Menerima total dari body request | hitung ulang di server |
-| Membatalkan order saat satu suborder ditolak | lepas stok suborder itu saja, refund parsial |
-| Menyetel field `Status` langsung | `Transition()` |
-| Memanggil gateway di dalam `WithinTx` | panggil setelah commit atau lewat worker |
-| Kolom saldo yang di-UPDATE | buku besar double entry |
-| `bus.Publish` dari usecase | `outbox.Save` di dalam transaksi |
-| Query di dalam loop | method port versi batch |
-| Menahan stok sejak masuk keranjang | tahan saat checkout dengan TTL |
-| Mengunci baris stok tanpa urutan tetap | `ORDER BY outlet_id, variant_id` |
-| `inventory` commit stok saat `OrderPaid` | saat `SuborderShipped` |
-| Entity domain langsung jadi JSON | struct response terpisah |
-| Peran dianggap cukup sebagai izin | periksa kepemilikan di usecase |
-| Mengandalkan webhook saja | tambahkan rekonsiliasi |
-| Menyelesaikan test dengan `time.Sleep` | `clock.Fixed` |
-| Mengisi banyak TODO sekaligus karena "sekalian" | kerjakan yang diminta saja |
+| Anti-pola                                       | Yang benar                                   |
+| ----------------------------------------------- | -------------------------------------------- |
+| `float64` untuk uang                            | `money.Amount` (int64 rupiah)                |
+| Membuang sisa pembulatan                        | `money.Distribute`                           |
+| Menerima total dari body request                | hitung ulang di server                       |
+| Membatalkan order saat satu suborder ditolak    | lepas stok suborder itu saja, refund parsial |
+| Menyetel field `Status` langsung                | `Transition()`                               |
+| Memanggil gateway di dalam `WithinTx`           | panggil setelah commit atau lewat worker     |
+| Kolom saldo yang di-UPDATE                      | buku besar double entry                      |
+| `bus.Publish` dari usecase                      | `outbox.Save` di dalam transaksi             |
+| Query di dalam loop                             | method port versi batch                      |
+| Menahan stok sejak masuk keranjang              | tahan saat checkout dengan TTL               |
+| Mengunci baris stok tanpa urutan tetap          | `ORDER BY outlet_id, variant_id`             |
+| `inventory` commit stok saat `OrderPaid`        | saat `SuborderShipped`                       |
+| Entity domain langsung jadi JSON                | struct response terpisah                     |
+| Peran dianggap cukup sebagai izin               | periksa kepemilikan di usecase               |
+| Mengandalkan webhook saja                       | tambahkan rekonsiliasi                       |
+| Menyelesaikan test dengan `time.Sleep`          | `clock.Fixed`                                |
+| Mengisi banyak TODO sekaligus karena "sekalian" | kerjakan yang diminta saja                   |
 
 ---
 
@@ -238,3 +238,20 @@ Kalau user memutuskan menyimpang, **tulis ADR baru di `docs/DECISIONS.md`**.
 - Menyebutkan trade-off dengan jujur, termasuk kelemahan pendekatan sendiri.
 - Menandai TODO yang tersisa alih-alih diam-diam menyelesaikannya.
 - Mengaku kalau tidak yakin, bukan menebak dan menulis dengan nada percaya diri.
+
+---
+
+## Agent Efektif dan Efisien
+
+- Selalu panggil sub-agents atau buat fork jika memungkinkan untuk mengerjakan tugas yang diberikan dan menghemat context di main agent
+- Gunakan mode implementasi `medium` atau `low` untuk mengerjakan tugas yang diberikan dan ini berlaku untuk main agent maupun sub-agents.
+- Selalu gunakan skill `caveman` (jika ada) untuk memberikan response dalam setiap permintaan user ataupun task, tanpa mengurangi kualitas jawaban, dan ini berlaku untuk main agent maupun sub-agents.
+
+---
+
+## Guard
+
+- Jangan baca file env seperti `.env` dan `.env*` lainnya selain yang memang example atau template env seperti `.env.example` tanpa persetujuan user terlebih dahulu.
+- Jangan menambah co-authors di commit message tanpa persetujuan user terlebih dahulu.
+
+---

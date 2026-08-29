@@ -10,7 +10,7 @@ dikirim ekspedisi, atau diambil sendiri di toko.
 apps/
   backend/     Go + chi + PostgreSQL. Seluruh sistem.
   frontend/    Belum dikerjakan.
-docs/          Arsitektur, keputusan, dan panduan kerja.
+docs/          Arsitektur dan keputusan (lintas-app).
 ```
 
 ## Bentuk yang paling menentukan
@@ -49,5 +49,5 @@ sistem terlihat normal padahal tidak ada yang terjadi.
 |---|---|
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Peta modul, alur checkout, model uang & stok |
 | [docs/DECISIONS.md](docs/DECISIONS.md) | Catatan keputusan teknis (ADR) |
-| [docs/GUIDES.md](docs/GUIDES.md) | Panduan kerja: mulai, tambah modul, endpoint, usecase |
+| [apps/backend/docs/GUIDES.md](apps/backend/docs/GUIDES.md) | Panduan kerja backend: mulai, tambah modul, endpoint, usecase |
 | [AGENTS.md](AGENTS.md) | Aturan untuk AI coding agent |
