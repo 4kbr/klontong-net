@@ -4,6 +4,7 @@
 > disiapkan lebih dulu sebelum sisa fase ini.) Guide: [`../GUIDES.md`](../GUIDES.md) §2
 > (tahap 11), §12. ADR: 008 (idempotensi + rekonsiliasi), 012 (COD), 014 (REST langsung).
 > **Fase menyentuh uang — hati-hati, `webhook_usecase` jalur paling berisiko.**
+> Kontrak (**mengikat**, ADR-015): [`paths/webhook.yaml`](../../../../contracts/openapi/paths/webhook.yaml), [`orders.yaml`](../../../../contracts/openapi/paths/orders.yaml) (payment), [`admin.yaml`](../../../../contracts/openapi/paths/admin.yaml) (payments, refunds).
 
 ## Tujuan
 

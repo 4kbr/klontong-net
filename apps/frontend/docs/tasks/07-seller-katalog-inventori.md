@@ -29,8 +29,9 @@ menerbitkan, dan menyesuaikan stok per outlet dengan jejak mutasi.
 - Gambar: `POST /seller/products/{id}/images/upload-url` → PUT ke storage →
   simpan referensi. Tangani kegagalan upload tanpa kehilangan draft.
 - Stok: **setiap perubahan `on_hand` menghasilkan Movement** (backend); UI tampil
-  `on_hand`, `reserved`, `tersedia = on_hand - reserved` terpisah. Jangan hitung
-  ulang reserved sendiri.
+  `quantity_on_hand`, `quantity_reserved`, dan `quantity_available` terpisah.
+  Ketiganya **datang dari server** (`schemas/seller.yaml`) — jangan menghitung
+  `on_hand - reserved` sendiri di klien.
 - Stok opname: alur draft → isi hitungan fisik → `finish` (selisih jadi Movement).
 
 ## Urutan kerja

@@ -2,6 +2,7 @@
 
 > Prasyarat: fase 12 (suborder bisa `completed`). Guide:
 > [`../GUIDES.md`](../GUIDES.md) §2 (tahap 15).
+> Kontrak (**mengikat**, ADR-015): [`paths/reviews.yaml`](../../../../contracts/openapi/paths/reviews.yaml), [`seller-reviews.yaml`](../../../../contracts/openapi/paths/seller-reviews.yaml).
 
 ## Tujuan
 

@@ -607,7 +607,80 @@ jadi jauh lebih mahal.
 
 ---
 
-## ADR-015: (template — salin untuk keputusan berikutnya)
+## ADR-015: `contracts/` adalah kontrak yang mengikat
+
+- **Tanggal:** 2026-08-31
+- **Status:** Diterima
+
+### Konteks
+
+Backend dan frontend dikerjakan **paralel di branch terpisah**. `contracts/`
+(OpenAPI 3.0.3, M1 + M2 lengkap) ditulis di trunk sebelum kedua branch bercabang
+dan dinyatakan "sumber kebenaran bentuk API", tapi hanya frontend yang benar-benar
+memakainya: frontend men-generate `packages/api/src/schema.d.ts` dari kontrak dan
+mengembangkan seluruh alurnya di atas mock (Prism + MSW) tanpa menunggu backend.
+
+Dokumen tugas backend (`apps/backend/docs/tasks/01–15`) **tidak menyebut
+`contracts/` sama sekali**. Ia hanya menyebut *area* (`/api/v1/seller`), dan dari
+15 fase hanya empat path yang ditulis eksplisit. Penamaan field JSON, format
+waktu, nama parameter paginasi, dan transport token tidak ditetapkan di mana pun
+di sisi backend — padahal kontrak sudah menetapkan semuanya.
+
+Artinya backend akan menemukan konvensinya sendiri saat implementasi, dan tipe
+hasil generate di frontend jadi bohong tanpa ada yang tahu sampai hari integrasi.
+
+### Keputusan
+
+**`contracts/openapi` mengikat kedua sisi.** Backend mengimplementasikan apa yang
+tertulis di kontrak: path, verb, nama field, enum, dan bentuk envelope.
+
+Kalau implementasi perlu menyimpang, **kontrak diubah di PR yang sama** dengan
+`make -C contracts ci` hijau. Frontend menjalankan `pnpm gen:api` dan ikut
+meng-commit `schema.d.ts` yang baru. Tidak ada penyimpangan yang dibiarkan hidup
+di kode tanpa tercermin di kontrak.
+
+Yang ditetapkan kontrak dan berlaku untuk backend:
+
+| Hal | Nilai |
+|---|---|
+| Penamaan field JSON | `snake_case` |
+| Uang | `integer` int64 rupiah, selalu angka. Persen = basis poin `integer` |
+| Kuantitas | `number` (boleh pecahan) |
+| Envelope sukses | `{ "data": <T>, "meta": <Meta> }` |
+| Envelope error | `{ "error": { "code", "message", "fields"?, "retryable"? } }`, `code` = `lower_snake_case` |
+| Paginasi | keyset, query `?limit` + `?cursor`, respons `meta.next_cursor` + `meta.has_more` |
+| Waktu | RFC3339 UTC |
+| Auth | `Authorization: Bearer <jwt>`, access TTL 15 menit |
+| Header wajib | `Idempotency-Key` di `POST /api/v1/checkout`; `X-Request-ID` di echo semua respons; `Retry-After` pada 429 |
+
+### Alternatif
+
+**`routes.go` backend yang mengikat, kontrak menyusul.** Ditolak: frontend
+mengembangkan sepuluh fase di atas tipe hasil generate. Kalau kontrak selalu
+menyusul, frontend rusak diam-diam di tengah fase dan baru ketahuan berminggu-
+minggu kemudian — persis kerugian yang mau dihindari dengan bekerja paralel.
+
+**Tidak ada yang mengikat, samakan saat integrasi.** Ditolak: itu memindahkan
+seluruh biaya penyelarasan ke satu hari di akhir, saat kedua sisi sudah terlanjur
+menulis kode di atas asumsi masing-masing.
+
+### Konsekuensi
+
+- Definition of Done tiap fase backend bertambah satu butir: endpoint fase itu
+  cocok dengan `contracts/openapi`.
+- Tiap file fase backend (02–15) menunjuk file `paths/*.yaml` yang relevan, jadi
+  implementer punya path dan bentuk field yang definitif, bukan menebak dari nama
+  area.
+- Mengubah kontrak jadi tindakan yang disengaja dan terlihat, bukan efek samping.
+- `contracts/dist/` di-`gitignore`; yang di-commit adalah sumber multi-file di
+  `contracts/openapi/` dan `schema.d.ts` di sisi frontend.
+- Beda yang sudah diketahui saat ADR ini ditulis sudah diselesaikan ke arah
+  kontrak — lihat `apps/backend/docs/tasks/12-suborder-lifecycle.md`
+  (`/api/v1/seller/orders/{suborderID}/...`).
+
+---
+
+## ADR-016: (template — salin untuk keputusan berikutnya)
 
 - **Tanggal:**
 - **Status:** Diusulkan

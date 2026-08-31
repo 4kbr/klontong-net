@@ -1,7 +1,6 @@
 # /api/v1/seller/orders* — siklus suborder dari sisi penjual.
-# Catatan scaffold: route memakai `/seller/orders/{suborderId}` (parameternya ADALAH
-# id suborder, bukan order). Task doc 12 menulis `/seller/suborders/{id}` — kontrak
-# mengikuti routes.go, diseragamkan saat implementasi.
+# Catatan: route memakai `/seller/orders/{suborderId}` (parameternya ADALAH id
+# suborder, bukan order). Sudah seragam dengan scaffold `routes.go` dan task doc 12.
 # Transisi mengikuti state.go: `shipped` tidak bisa dibatalkan; `delivered` != `completed`.
 
 collection:

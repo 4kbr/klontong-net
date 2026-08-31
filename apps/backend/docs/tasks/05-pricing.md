@@ -2,6 +2,7 @@
 
 > Prasyarat: fase 04. Guide: [`../GUIDES.md`](../GUIDES.md) §2 (tahap 5), §10.
 > ADR terkait: ADR-004 (harga dihitung server, jalur sama), ADR-005 (uang).
+> Kontrak (**mengikat**, ADR-015): [`paths/seller-catalog.yaml`](../../../../contracts/openapi/paths/seller-catalog.yaml) (price, tiers, prices).
 
 ## Tujuan
 

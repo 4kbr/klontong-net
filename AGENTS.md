@@ -243,8 +243,8 @@ Kalau user memutuskan menyimpang, **tulis ADR baru di `docs/DECISIONS.md`**.
 
 ## Agent Efektif dan Efisien
 
-- Selalu panggil sub-agents atau buat fork jika memungkinkan untuk mengerjakan tugas yang diberikan dan menghemat context di main agent
-- Gunakan mode implementasi `medium` atau `low` untuk mengerjakan tugas yang diberikan dan ini berlaku untuk main agent maupun sub-agents.
+- Jangan kerjakan task sendiri, Selalu panggil sub-agents atau buat fork jika memungkinkan untuk mengerjakan tugas yang diberikan dan menghemat context dan token di main agent
+- Gunakan effort `high` untuk mode planning dan effort `medium` atau `low` untuk mode implementasi dalam mengerjakan tugas yang diberikan dan ini berlaku untuk main agent maupun sub-agents.
 - Selalu gunakan skill `caveman` (jika ada) untuk memberikan response dalam setiap permintaan user ataupun task, tanpa mengurangi kualitas jawaban, dan ini berlaku untuk main agent maupun sub-agents.
 
 ---

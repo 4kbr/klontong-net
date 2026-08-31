@@ -38,9 +38,17 @@ dikerjakan.
 Fase 1, 9, 14, dan checkout di fase 10 **menyentuh uang → tulis test lebih dulu**
 ([`GUIDES.md` §15](GUIDES.md)).
 
+## Fase integrasi lintas-app
+
+Setelah fase 12, jalur buyer sudah utuh dari sisi backend. Saat frontend juga sudah
+sampai fase 05, jalankan [`docs/tasks/INTEGRASI.md`](../../../docs/tasks/INTEGRASI.md)
+— lepas mock, sambungkan storefront ke API asli, dan cocokkan respons dengan kontrak.
+
+Fase itu **tidak memblokir**. Kalau frontend belum siap, backend lanjut ke fase 13.
+
 ## Aturan global (berlaku di semua fase)
 
-Ringkas dari [`../AGENTS.md`](../AGENTS.md) dan [`../../AGENTS.md`](../../AGENTS.md).
+Ringkas dari [`../AGENTS.md`](../AGENTS.md) dan [`../../../AGENTS.md`](../../../AGENTS.md).
 Kalau ragu, baca ulang di sana.
 
 - **Uang**: `money.Amount` (int64 rupiah). **Tidak ada `float`, tidak pernah**, di jalur
@@ -69,6 +77,16 @@ Kalau ragu, baca ulang di sana.
   lain? Tambah method di `port.go` modul tujuan. Tidak ada modul bergantung balik ke
   `order` kecuali lewat event. Method port yang dipanggil dalam loop **wajib punya versi
   batch**.
+- **Kontrak API**: [`contracts/openapi`](../../../contracts/openapi) **mengikat**
+  (ADR-015). Path, verb, nama field, dan enum diambil dari sana — tiap file fase
+  menunjuk `paths/*.yaml`-nya. Yang dikunci kontrak dan sering tidak tertulis di sisi
+  Go: field JSON `snake_case`; waktu RFC3339 UTC; uang `integer` int64 (persen basis
+  poin `integer`); kuantitas `number`; envelope sukses `{data,meta}`, error
+  `{error:{code,message,fields?,retryable?}}` dengan `code` `lower_snake_case`;
+  paginasi keyset `?limit` + `?cursor` dengan `meta.next_cursor` + `meta.has_more`;
+  `Authorization: Bearer <jwt>` (akses TTL 15 menit); `X-Request-ID` di echo semua
+  respons; `Retry-After` pada 429. Perlu menyimpang? Ubah kontrak di **PR yang sama**,
+  `make -C contracts ci` hijau — jangan diam-diam.
 - **Konvensi**: `context.Context` parameter pertama. `clock.Now()` bukan `time.Now()`.
   Error dibungkus `errs.*`. SQL sebagai konstanta string. Struct response HTTP terpisah
   dari entity domain. Komentar Bahasa Indonesia. Package tidak pernah `utils`/`helpers`/
@@ -85,16 +103,21 @@ Kalau ragu, baca ulang di sana.
 - [ ] Test wajib fase (lihat bagian "Test wajib" di file fase) ada dan lulus
 - [ ] Modul baru dirakit di `internal/app/registry.go`; `RegisterSubscriptions` /
       `RegisterWorkers` (bila ada) dipanggil dari `registry.go`
+- [ ] Path, verb, nama field, dan enum fase ini cocok dengan
+      [`contracts/openapi`](../../../contracts/openapi). Beda → ubah kontrak di PR yang
+      sama, `make -C contracts ci` hijau (ADR-015)
 - [ ] Laporan singkat: file apa yang diisi, keputusan yang diambil, TODO yang sengaja
       ditinggalkan
 
 ## Catatan scaffold yang perlu dibereskan awal
 
-- `Makefile` sekarang punya `migrate-up` (bukan `migrate`), `dev`, `run`, `worker`,
-  `test`, `test-integration`, `lint`, `fmt`, `check`, `seed`, `tools`.
-  `GUIDES.md` menyebut `make setup`, `make up`, `make migrate`, `make tunnel` yang
-  **belum ada** — tambahkan di fase 1 sebagai target tipis (alias / compose up), atau
-  perbaiki rujukan di guide. Jangan diam-diam.
+- Ada **dua** `Makefile`. Root punya `setup`, `up`, `down`, `logs`, `dev`, `worker`,
+  `tunnel`, `migrate`, `migrate-create`, `seed`, `test`, `lint`, `check`.
+  `apps/backend/Makefile` punya `migrate-up`/`migrate-down`/`migrate-force`/
+  `migrate-version`, `run`, `build`, `fmt`, `cover`, `tools`. Perintah di `GUIDES.md`
+  §1 dan §3 (`make setup`, `make up`, `make migrate`, `make tunnel`) dijalankan **dari
+  root** — semuanya sudah ada, tidak perlu ditambah. `Makefile` root juga dipakai
+  frontend dan `contracts/`; jangan menambah target backend di sana.
 - Semua `migrations/*.up.sql` hanya komentar spec. Tiap fase menuliskan DDL-nya sesuai
   spec yang sudah ada di file itu. Kolom uang `bigint`, kolom kuantitas `numeric(14,3)`.
 - Semua `migrations/*.down.sql` hanya `-- TODO` — tulis drop yang benar-benar jalan,

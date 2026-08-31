@@ -2,6 +2,7 @@
 
 > Prasyarat: fase 01. Guide: [`../GUIDES.md`](../GUIDES.md) §2 (tahap 2), §4–§6.
 > ADR terkait: ADR-010 (snapshot alamat).
+> Kontrak (**mengikat**, ADR-015): [`paths/auth.yaml`](../../../../contracts/openapi/paths/auth.yaml), [`me.yaml`](../../../../contracts/openapi/paths/me.yaml), [`addresses.yaml`](../../../../contracts/openapi/paths/addresses.yaml).
 
 ## Tujuan
 

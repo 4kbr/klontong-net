@@ -141,8 +141,11 @@ lulus.
 - [ ] `migrations/000015_create_audit_and_outbox.up.sql` / `.down.sql` — **bagian
       `outbox_events` saja** (audit_events menyusul di fase 13): kolom sesuai spec, index
       `WHERE published_at IS NULL`.
-- [ ] `Makefile` — tambahkan target tipis `setup` / `up` / `migrate` (alias
-      `migrate-up`) / `tunnel` yang dirujuk `GUIDES.md`, atau perbaiki rujukannya.
+- [ ] `Makefile` — **tidak perlu menambah target.** `setup` / `up` / `migrate` /
+      `tunnel` yang dirujuk `GUIDES.md` sudah ada di `Makefile` **root**; yang di
+      `apps/backend/Makefile` bernama `migrate-up`. Cukup pastikan `GUIDES.md` jelas
+      menyebut perintah mana dijalankan dari root. Jangan menambah target duplikat —
+      `Makefile` root juga dipakai frontend dan `contracts/`.
 
 ## Test wajib
 

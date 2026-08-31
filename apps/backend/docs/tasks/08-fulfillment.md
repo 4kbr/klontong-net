@@ -3,6 +3,7 @@
 > Prasyarat: fase 03. Guide: [`../GUIDES.md`](../GUIDES.md) §2 (tahap 8), §12.
 > ADR terkait: ADR-014 (REST langsung, bukan SDK). Faktor jarak lokal → **butuh ADR
 > baru** (lihat "Yang masih terbuka" di `../DECISIONS.md`).
+> Kontrak (**mengikat**, ADR-015): [`paths/shipping.yaml`](../../../../contracts/openapi/paths/shipping.yaml), [`seller-fulfillment.yaml`](../../../../contracts/openapi/paths/seller-fulfillment.yaml).
 
 ## Tujuan
 

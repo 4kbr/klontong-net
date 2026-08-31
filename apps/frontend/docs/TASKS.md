@@ -1,6 +1,7 @@
 # TASKS — Urutan Implementasi Frontend
 
-Frontend Klontong Net **belum ada**: `apps/frontend/` hanya berisi `README.md`.
+Frontend Klontong Net dikerjakan **paralel dengan backend**, di atas kontrak yang
+sama dan tanpa menunggu backend siap.
 Dokumen ini menerjemahkan rancangan arsitektur jadi **checklist per fase** yang
 bisa langsung dikerjakan, meniru format `apps/backend/docs/TASKS.md`.
 
@@ -17,6 +18,11 @@ M1 buyer + M2 seller/admin/webhook lengkap). Untuk *alasan* di balik aturan, bac
    Aturan khusus → Urutan kerja (Tipe & API → State → Komponen → Halaman & rute →
    Wiring) → Test wajib → Sengaja tidak dikerjakan.
 4. Selesai satu fase, jalankan **Definition of Done** di bawah sebelum lanjut.
+5. **Jangan menunggu backend.** Seluruh 11 fase bisa selesai di atas MSW. Kalau
+   backend belum siap saat kamu sampai fase 05, lanjut ke fase 06 — jangan berhenti
+   dan jangan menurunkan cakupan. Penyambungan ke API asli punya fasenya sendiri:
+   [`docs/tasks/INTEGRASI.md`](../../../docs/tasks/INTEGRASI.md), dijalankan saat
+   backend fase 12 juga sudah selesai.
 
 ## Prasyarat repo
 
@@ -124,6 +130,10 @@ Ringkas dari `../../../AGENTS.md`, `docs/ARCHITECTURE.md`, `docs/DECISIONS.md`, 
   refresh lalu retry sekali; gagal → logout.
 - **Keranjang tamu.** `session_token` di `localStorage`, dikirim sebagai header.
   Setelah login → `POST /api/v1/cart/merge` lalu hapus token tamu.
+  ⚠️ **Belum dikunci di kontrak**: `paths/cart.yaml` masih menulis "cookie/header".
+  Sebelum fase 04 dikerjakan, kunci satu transport di
+  `contracts/openapi/components/parameters.yaml` — kalau tidak, keranjang tamu gagal
+  saat lepas mock.
 - **Envelope.** Sukses `{ data, meta }` (unwrap di `client.ts`). Error
   `{ error: { code, message, fields?, retryable? } }` → `ApiError` bertipe;
   cabang UI pakai `error.code` (`lower_snake_case`), bukan `message`. `fields`
@@ -150,7 +160,8 @@ Ringkas dari `../../../AGENTS.md`, `docs/ARCHITECTURE.md`, `docs/DECISIONS.md`, 
 - [ ] `pnpm build` hijau untuk app yang tersentuh
 - [ ] MSW handler + fixture (diketik dari `schema.d.ts`) untuk endpoint baru fase ini ada
 - [ ] Test wajib fase (lihat bagian "Test wajib" di file fase) ada dan lulus
-- [ ] `pnpm gen:api` dijalankan bila kontrak berubah; `schema.d.ts` ikut di-commit
+- [ ] `pnpm gen:api` dijalankan **setiap** kontrak berubah; `schema.d.ts` ikut di-commit
+      di PR yang sama (ADR-015 — kontrak mengikat kedua sisi)
 - [ ] Laporan singkat: file yang dibuat/diubah, keputusan yang diambil, yang sengaja ditunda
 
 ## Catatan kontrak yang perlu diperhatikan
@@ -159,7 +170,7 @@ Ringkas dari `../../../AGENTS.md`, `docs/ARCHITECTURE.md`, `docs/DECISIONS.md`, 
   `GET /api/v1/products/{productId}/reviews`. Ikuti kontrak apa adanya; simpan
   keduanya (`slug` + `id`) di tipe produk hasil fetch.
 - `order` routes seller memakai `/api/v1/seller/orders/{suborderId}` (bukan
-  `/suborders/{id}`). Kontrak mengikuti `routes.go` backend — pakai path kontrak.
+  `/suborders/{id}`). Pakai path kontrak; task doc backend 12 sudah disamakan.
 - Tidak ada webhook kurir; update tracking dari sisi frontend hanya **membaca**
   status (worker backend yang menyinkronkan).
 - Prism bersifat **stateless**. Alur stateful (keranjang → checkout → pesanan,

@@ -3,6 +3,7 @@
 > Prasyarat: fase 03. Guide: [`../GUIDES.md`](../GUIDES.md) §2 (tahap 9), §10.
 > ADR terkait: ADR-005 (basis poin, `money.Distribute`), ADR-008 (idempotensi kuota).
 > **Fase menyentuh uang — tulis test lebih dulu.**
+> Kontrak (**mengikat**, ADR-015): [`paths/vouchers.yaml`](../../../../contracts/openapi/paths/vouchers.yaml), [`seller-promotion.yaml`](../../../../contracts/openapi/paths/seller-promotion.yaml), [`admin.yaml`](../../../../contracts/openapi/paths/admin.yaml) (bagian vouchers).
 
 ## Tujuan
 

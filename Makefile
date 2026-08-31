@@ -1,4 +1,6 @@
-BACKEND := apps/backend
+BACKEND   := apps/backend
+FRONTEND  := apps/frontend
+CONTRACTS := contracts
 
 .DEFAULT_GOAL := help
 
@@ -63,12 +65,50 @@ test-integration: ## Semua test (butuh docker)
 	$(MAKE) -C $(BACKEND) test-integration
 
 .PHONY: lint
-lint: ## Lint
+lint: ## Lint backend
 	$(MAKE) -C $(BACKEND) lint
 
 .PHONY: check
-check: ## Gate sebelum commit
+check: ## Gate backend sebelum commit
 	$(MAKE) -C $(BACKEND) check
+
+# --- Kontrak API (contracts/) -------------------------------------------------
+# Kontrak mengikat backend dan frontend. Lihat ADR-015 di docs/DECISIONS.md.
+
+.PHONY: contracts-lint
+contracts-lint: ## Lint kontrak OpenAPI (Spectral)
+	$(MAKE) -C $(CONTRACTS) lint
+
+.PHONY: contracts-bundle
+contracts-bundle: ## Bundel kontrak -> contracts/dist/openapi.yaml
+	$(MAKE) -C $(CONTRACTS) bundle
+
+.PHONY: contracts-check
+contracts-check: ## Gate kontrak: lint + bundle
+	$(MAKE) -C $(CONTRACTS) ci
+
+.PHONY: mock
+mock: ## Mock server dari kontrak (Prism, :4010)
+	$(MAKE) -C $(CONTRACTS) mock
+
+# --- Frontend -----------------------------------------------------------------
+
+.PHONY: fe-gen
+fe-gen: ## Generate ulang tipe TS dari kontrak
+	cd $(FRONTEND) && pnpm gen:api
+
+.PHONY: fe-dev
+fe-dev: ## Jalankan storefront + dashboard
+	cd $(FRONTEND) && pnpm dev
+
+.PHONY: fe-check
+fe-check: ## Gate frontend: typecheck + lint + test + build
+	cd $(FRONTEND) && pnpm check
+
+# --- Gate menyeluruh ----------------------------------------------------------
+
+.PHONY: check-all
+check-all: contracts-check check fe-check ## Gate lintas-app: kontrak + backend + frontend
 
 .PHONY: help
 help: ## Tampilkan bantuan ini

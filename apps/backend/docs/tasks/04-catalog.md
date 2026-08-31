@@ -2,6 +2,7 @@
 
 > Prasyarat: fase 03. Guide: [`../GUIDES.md`](../GUIDES.md) §2 (tahap 4), §6.
 > ADR terkait: ADR-006 (stok satuan terkecil).
+> Kontrak (**mengikat**, ADR-015): [`paths/catalog-public.yaml`](../../../../contracts/openapi/paths/catalog-public.yaml), [`seller-catalog.yaml`](../../../../contracts/openapi/paths/seller-catalog.yaml).
 
 ## Tujuan
 

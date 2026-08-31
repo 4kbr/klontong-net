@@ -3,6 +3,7 @@
 > Prasyarat: fase 10 + fase 06. Guide: [`../GUIDES.md`](../GUIDES.md) §2 (tahap 12), §5.
 > ADR: 002 (suborder unit kerja, refund parsial), 009 (state machine, delivered ≠
 > completed).
+> Kontrak (**mengikat**, ADR-015): [`paths/seller-orders.yaml`](../../../../contracts/openapi/paths/seller-orders.yaml), [`orders.yaml`](../../../../contracts/openapi/paths/orders.yaml) (cancel, confirm-received).
 
 ## Tujuan
 
@@ -70,7 +71,8 @@ pesanan penjual lain.
 
 ### Transport
 - [ ] `order/internal/transport/rest/seller_handler.go` — endpoint confirm/reject/pack/
-      ship/ready di `/api/v1/seller/suborders/{id}/...`.
+      ship/ready di `/api/v1/seller/orders/{suborderID}/...` — path ini yang dipakai
+      kontrak **dan** scaffold `routes.go`. Bukan `/api/v1/seller/suborders/{id}/...`.
 - [ ] `order/internal/transport/rest/order_handler.go` — `cancel` + `confirm-received` di
       `/api/v1`.
 - [ ] Perbarui `routes.go`, `request.go` (`Validate()`), `response.go`.

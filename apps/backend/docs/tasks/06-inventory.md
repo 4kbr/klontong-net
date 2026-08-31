@@ -2,6 +2,7 @@
 
 > Prasyarat: fase 04. Guide: [`../GUIDES.md`](../GUIDES.md) §2 (tahap 6), §11.
 > ADR terkait: ADR-003 (tahan saat checkout), ADR-006 (satuan dasar), ADR-007.
+> Kontrak (**mengikat**, ADR-015): [`paths/seller-inventory.yaml`](../../../../contracts/openapi/paths/seller-inventory.yaml).
 
 ## Tujuan
 

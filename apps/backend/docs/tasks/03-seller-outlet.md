@@ -2,6 +2,7 @@
 
 > Prasyarat: fase 02. Guide: [`../GUIDES.md`](../GUIDES.md) §2 (tahap 3), §4–§6.
 > ADR terkait: ADR-007 (pemilihan outlet), ADR-005 (basis poin komisi).
+> Kontrak (**mengikat**, ADR-015): [`paths/seller-shop.yaml`](../../../../contracts/openapi/paths/seller-shop.yaml), [`admin.yaml`](../../../../contracts/openapi/paths/admin.yaml) (bagian sellers).
 
 ## Tujuan
 

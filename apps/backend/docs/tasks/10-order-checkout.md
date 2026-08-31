@@ -4,6 +4,7 @@
 > `gateway_noop`). Guide: [`../GUIDES.md`](../GUIDES.md) §2 (tahap 10), §4, §5, §8,
 > plus `../ARCHITECTURE.md` §6. ADR: 002, 004, 005, 007, 008, 009, 010.
 > **File paling kompleks di proyek — tulis test lebih dulu** (`../GUIDES.md` §15).
+> Kontrak (**mengikat**, ADR-015): [`paths/checkout.yaml`](../../../../contracts/openapi/paths/checkout.yaml), [`orders.yaml`](../../../../contracts/openapi/paths/orders.yaml).
 
 ## Tujuan
 

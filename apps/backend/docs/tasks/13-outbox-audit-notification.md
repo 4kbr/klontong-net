@@ -3,6 +3,7 @@
 > Prasyarat: fase 01 + fase 10 (dan idealnya 11, 12). Guide:
 > [`../GUIDES.md`](../GUIDES.md) §2 (tahap 13), §8, §9. ADR: 013 (worker proses
 > terpisah). `../ARCHITECTURE.md` §11–§12.
+> Kontrak (**mengikat**, ADR-015): [`paths/notifications.yaml`](../../../../contracts/openapi/paths/notifications.yaml), [`admin.yaml`](../../../../contracts/openapi/paths/admin.yaml) (bagian audit).
 
 ## Tujuan
 

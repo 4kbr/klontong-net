@@ -4,6 +4,7 @@
 > §9. ADR: 011 (double entry, bukan kolom saldo), 012 (COD arah terbalik), 008
 > (idempotensi + rekonsiliasi), 013 (kunci terdistribusi worker uang).
 > **"Bagian yang paling tidak boleh salah." Tulis test lebih dulu.**
+> Kontrak (**mengikat**, ADR-015): [`paths/seller-finance.yaml`](../../../../contracts/openapi/paths/seller-finance.yaml), [`admin.yaml`](../../../../contracts/openapi/paths/admin.yaml) (settlements, payouts, reports).
 
 ## Tujuan
 

@@ -3,6 +3,7 @@
 > Prasyarat: fase 05 + fase 06. Guide: [`../GUIDES.md`](../GUIDES.md) §2 (tahap 7).
 > ADR terkait: ADR-003 (tidak menahan stok dari keranjang), ADR-004 (tanpa harga di
 > request), ADR-007 (satu suborder satu outlet).
+> Kontrak (**mengikat**, ADR-015): [`paths/cart.yaml`](../../../../contracts/openapi/paths/cart.yaml).
 
 ## Tujuan
 

@@ -82,10 +82,32 @@ openapi/
 - **Order** = order induk + array suborder, tiap suborder punya status & nominal
   sendiri. Jangan dikolapskan jadi satu status.
 
+## Cara mengubah kontrak
+
+Kontrak ini **mengikat kedua sisi** — lihat
+[ADR-015](../docs/DECISIONS.md). Backend mengimplementasikan apa yang tertulis di
+sini; frontend men-generate tipenya dari sini.
+
+Kalau implementasi perlu menyimpang:
+
+1. Ubah `openapi/**` **di PR yang sama** dengan perubahan implementasinya. Jangan
+   tinggalkan penyimpangan yang hidup di kode tapi tidak tercermin di kontrak.
+2. `make lint` dan `make bundle` wajib hijau (`make ci`).
+3. Frontend menjalankan `pnpm gen:api` dan ikut meng-commit `schema.d.ts`.
+
+Penyimpangan diselesaikan **ke arah kontrak**, bukan ke arah yang lebih mudah
+diubah. Menambah field aman; menghapus atau mengubah tipe field tidak — itu
+memutus tipe yang sudah dipakai frontend.
+
+Perubahan pada "Aturan yang dikunci" di atas butuh ADR baru di
+[`docs/DECISIONS.md`](../docs/DECISIONS.md), bukan sekadar edit YAML.
+
 ## Catatan ketidaksesuaian scaffold (ditandai di `description`, diseragamkan saat implementasi)
 
-- `order/.../routes.go` pakai `/api/v1/seller/orders/{suborderID}/...`; task doc 12
-  menulis `/api/v1/seller/suborders/{id}/...`. Kontrak mengikuti `routes.go`.
+- ~~`order/.../routes.go` pakai `/api/v1/seller/orders/{suborderID}/...`; task doc 12
+  menulis `/api/v1/seller/suborders/{id}/...`.~~ **Selesai** — task doc 12 sudah
+  disamakan ke `/api/v1/seller/orders/{suborderID}/...`, cocok dengan kontrak dan
+  scaffold `routes.go`.
 - `GET /api/v1/products/{slug}` vs `GET /api/v1/products/{productId}/reviews` — campur
   slug/id. Didokumentasikan apa adanya.
 - Tidak ada webhook kurir; update tracking lewat worker `SyncTracking` (M2 catatan).
