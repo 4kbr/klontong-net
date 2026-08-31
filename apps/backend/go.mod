@@ -22,3 +22,5 @@ go 1.23
 // Payment gateway dan agregator ongkir dipanggil lewat REST langsung dengan
 // net/http, dibungkus di modulnya masing-masing. SDK mereka biasanya tipis dan
 // mengikat kita ke bentuk mereka. Lihat ADR-014.
+
+require github.com/google/uuid v1.6.0
