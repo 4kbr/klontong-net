@@ -24,6 +24,7 @@ Dokumen pendamping:
 
 | Dokumen                       | Baca kalau                                               |
 | ----------------------------- | -------------------------------------------------------- |
+| `docs/HANDS-OFF.md`           | **baru masuk** — kondisi repo saat ini dan ranjau aktif  |
 | `docs/ARCHITECTURE.md`        | tugas menyentuh lebih dari satu modul                    |
 | `docs/DECISIONS.md`           | tugas menyentuh uang, stok, pesanan, atau pembayaran     |
 | `apps/backend/docs/GUIDES.md` | tugas berupa "tambah endpoint / usecase / modul / event" |

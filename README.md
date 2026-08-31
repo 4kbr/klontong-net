@@ -71,6 +71,7 @@ make check-all         # gate lintas-app: kontrak + backend + frontend
 
 | Dokumen | Isi |
 |---|---|
+| [docs/HANDS-OFF.md](docs/HANDS-OFF.md) | **Mulai dari sini.** Kondisi repo saat ini, ranjau yang aktif, langkah berikutnya |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Peta modul, alur checkout, model uang & stok |
 | [docs/DECISIONS.md](docs/DECISIONS.md) | Catatan keputusan teknis (ADR) |
 | [contracts/README.md](contracts/README.md) | Kontrak API: aturan yang dikunci, cara memakai, cara mengubah |
